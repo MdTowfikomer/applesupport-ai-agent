@@ -1,0 +1,24 @@
+# AppleSupport Subsample Dataset Statistics
+
+- **Target Brand**: `AppleSupport`
+- **Data Source**: `twcs`
+- **Total Reconstructed Conversation Threads**: `5,000`
+- **AppleSupport Tweets Seen in Dataset**: `106,860`
+- **Subsample Coverage**: `5,000 threads / 106,860 AppleSupport tweets (4.68%)`
+- **Total Individual Turns**: `13,956`
+  - Customer (Inbound) Turns: `7,343`
+  - Brand (Outbound) Turns: `6,613`
+- **Turn Count Distribution**:
+  - `2_turns`: 2,943 (58.86%)
+  - `3_turns`: 417 (8.34%)
+  - `4_turns`: 1,467 (29.34%)
+  - `5_turns`: 126 (2.52%)
+  - `6_turns`: 30 (0.6%)
+  - `7_turns`: 8 (0.16%)
+  - `8_turns`: 5 (0.1%)
+  - `10_turns`: 2 (0.04%)
+  - `11_turns`: 1 (0.02%)
+  - `14_turns`: 1 (0.02%)
+- **Date Range**: `Fri Dec 01 10:37:51 +0000 2017` to `Wed Sep 27 21:58:46 +0000 2017`
+- **Average Customer Query Length**: `20.6` words
+- **Average Brand Resolution Length**: `23.49` words

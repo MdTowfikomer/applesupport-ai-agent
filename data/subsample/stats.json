@@ -1,0 +1,28 @@
+{
+  "brand": "AppleSupport",
+  "source": "twcs",
+  "total_threads": 5000,
+  "applesupport_tweets_seen": 106860,
+  "subsample_size_vs_seen": "5,000 threads / 106,860 AppleSupport tweets (4.68%)",
+  "total_turns": 13956,
+  "inbound_turns": 7343,
+  "outbound_turns": 6613,
+  "turn_count_histogram": {
+    "2_turns": 2943,
+    "3_turns": 417,
+    "4_turns": 1467,
+    "5_turns": 126,
+    "6_turns": 30,
+    "7_turns": 8,
+    "8_turns": 5,
+    "10_turns": 2,
+    "11_turns": 1,
+    "14_turns": 1
+  },
+  "date_range": {
+    "start": "Fri Dec 01 10:37:51 +0000 2017",
+    "end": "Wed Sep 27 21:58:46 +0000 2017"
+  },
+  "avg_words_per_customer_message": 20.6,
+  "avg_words_per_brand_reply": 23.49
+}
