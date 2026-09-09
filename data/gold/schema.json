@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AppleSupportGoldenEvaluationItem",
+  "description": "Schema for AppleSupport golden evaluation benchmark items (T3/T4)",
+  "type": "object",
+  "required": [
+    "thread_id",
+    "customer_tweet_id",
+    "customer_text",
+    "brand_text",
+    "intent",
+    "escalate",
+    "escalate_reason"
+  ],
+  "properties": {
+    "thread_id": {
+      "type": "string",
+      "description": "Unique thread identifier from subsample (e.g. twcs_apple_00146)"
+    },
+    "customer_tweet_id": {
+      "type": ["string", "integer"],
+      "description": "Tweet ID of the customer's initial inbound message"
+    },
+    "customer_text": {
+      "type": "string",
+      "description": "Exact text of the customer's first inbound tweet (primary input for intent & escalation)"
+    },
+    "brand_text": {
+      "type": "string",
+      "description": "Historical resolution reply by @AppleSupport (reference context only, not used to label intent)"
+    },
+    "turn_count": {
+      "type": "integer",
+      "description": "Total number of conversation turns in the thread"
+    },
+    "created_at": {
+      "type": "string",
+      "description": "Timestamp of the customer's initial tweet"
+    },
+    "intent": {
+      "type": ["string", "null"],
+      "description": "Ground-truth intent from canonical codebook (must be null until human labeling in T4)",
+      "enum": [
+        "battery_power_issue",
+        "performance_crash_freeze",
+        "software_update_glitch",
+        "connectivity_network_issue",
+        "hardware_physical_accessory",
+        "account_access_security",
+        "billing_purchases_subscriptions",
+        "apps_feature_howto",
+        "vague_complaint_unclear",
+        "other",
+        null
+      ]
+    },
+    "escalate": {
+      "type": ["boolean", "null"],
+      "description": "Ground-truth triage decision (must be null until human labeling in T4)"
+    },
+    "escalate_reason": {
+      "type": ["string", "null"],
+      "description": "Ground-truth escalation reason code from canonical codebook (must be null or empty until labeled)",
+      "enum": [
+        "account_security_credentials",
+        "financial_billing_transaction",
+        "physical_hardware_safety",
+        "legal_regulatory_dispute",
+        "channel_transition",
+        "missing_context_screenshot",
+        "",
+        null
+      ]
+    },
+    "notes": {
+      "type": ["string", "null"],
+      "description": "Optional human annotator notes, edge cases, or ambiguity commentary"
+    }
+  }
+}
