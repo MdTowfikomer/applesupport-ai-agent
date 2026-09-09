@@ -55,25 +55,29 @@ To process the raw dataset yourself:
    ```
    *(Note: The script safely checks for `data/raw/twcs.csv` and fails clearly with explicit download commands if missing).*
 
-### 4. Running Baselines and Evaluation
+### 4. Running Baselines and Evaluation (Task T5)
 
-Run the evaluation harness directly on the golden evaluation set (`data/gold/gold_eval_200.jsonl`):
+The evaluation harness evaluates `data/gold/gold_eval_200.jsonl` offline **without requiring API keys or external services**.
 
 ```bash
-# 1. Run Trivial Baseline (Majority Intent + Static Canned Reply)
-python -m src.eval.run_baseline --type trivial
+# Run the evaluation harness on gold with sanity-check baselines:
+python -m scripts.eval_gold
 
-# 2. Run Simple Baseline (TF-IDF Retrieval + Heuristic Escalation Rules)
-python -m src.eval.run_baseline --type simple
-
-# 3. Run Full Proposed Agent (Intent Classifier + Vector RAG + Calibrated Escalation)
-python -m src.eval.run_eval --agent proposed
-
-# 4. Run LLM-as-a-Judge on outputs & compute human agreement
-python -m src.eval.run_judge --eval-file reports/eval_results_proposed.jsonl
+# Run unit and integration tests:
+pytest tests/ -v
+# or via standard library:
+python -m unittest discover tests
 ```
 
-All summary tables, confusion matrices, and metrics will be printed to stdout and saved in `reports/`.
+#### Expected T5 Output & Baseline Benchmark Results
+
+| Baseline | Evaluated Task | Accuracy | Macro-F1 | Precision | Recall | F1-Score |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Majority-Intent (`other`)** | Intent (10 classes) | **16.00%** | **2.76%** | N/A | N/A | N/A |
+| **Always-Escalate (`True`)** | Escalation (Binary) | **51.50%** | N/A | **51.50%** | **100.00%** | **67.99%** |
+
+> [!NOTE]
+> These are non-learning, rule-free sanity-check baselines designed to establish the empirical performance floor on the 200-sample gold benchmark. All outputs are serialized to `reports/baseline_eval_results.json` without altering the gold JSONL dataset. Holdout IDs in `data/gold/index_holdout_ids.txt` remain strictly excluded from retrieval indexes.
 
 ---
 

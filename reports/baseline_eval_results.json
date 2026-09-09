@@ -1,0 +1,241 @@
+{
+  "metadata": {
+    "task": "T5_evaluation_harness_and_dummy_baselines",
+    "gold_file": "data\\gold\\gold_eval_200.jsonl",
+    "num_samples": 200,
+    "holdout_isolated": true
+  },
+  "baseline_1_majority_intent": {
+    "model_type": "MajorityIntentBaseline (Sanity Check)",
+    "predicted_class": "other",
+    "overall_accuracy": 0.16,
+    "macro_f1": 0.0276,
+    "weighted_f1": 0.0441,
+    "per_class": {
+      "battery_power_issue": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 27,
+        "tp": 0,
+        "fp": 0,
+        "fn": 27
+      },
+      "performance_crash_freeze": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 30,
+        "tp": 0,
+        "fp": 0,
+        "fn": 30
+      },
+      "software_update_glitch": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 25,
+        "tp": 0,
+        "fp": 0,
+        "fn": 25
+      },
+      "connectivity_network_issue": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 11,
+        "tp": 0,
+        "fp": 0,
+        "fn": 11
+      },
+      "hardware_physical_accessory": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 12,
+        "tp": 0,
+        "fp": 0,
+        "fn": 12
+      },
+      "account_access_security": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 20,
+        "tp": 0,
+        "fp": 0,
+        "fn": 20
+      },
+      "billing_purchases_subscriptions": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 8,
+        "tp": 0,
+        "fp": 0,
+        "fn": 8
+      },
+      "apps_feature_howto": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 31,
+        "tp": 0,
+        "fp": 0,
+        "fn": 31
+      },
+      "vague_complaint_unclear": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 4,
+        "tp": 0,
+        "fp": 0,
+        "fn": 4
+      },
+      "other": {
+        "precision": 0.16,
+        "recall": 1.0,
+        "f1": 0.2759,
+        "support": 32,
+        "tp": 32,
+        "fp": 168,
+        "fn": 0
+      }
+    },
+    "confusion_matrix": [
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        27
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        30
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        25
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        11
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        12
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        20
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        8
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        31
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        4
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        32
+      ]
+    ]
+  },
+  "baseline_2_always_escalate": {
+    "model_type": "AlwaysEscalateBaseline (Sanity Check)",
+    "predicted_decision": true,
+    "escalation_accuracy": 0.515,
+    "precision": 0.515,
+    "recall": 1.0,
+    "f1": 0.6799,
+    "tp": 103,
+    "fp": 97,
+    "tn": 0,
+    "fn": 0
+  }
+}
