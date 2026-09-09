@@ -33,13 +33,13 @@ All records strictly conform to the schema defined in `data/gold/schema.json` an
 
 | Intent Code | Category | Count | Proportion |
 |:---|:---|:---:|:---:|
+| `other` | Foreign Language / Presales / Directory / Courtesy | **32** | 16.0% |
 | `apps_feature_howto` | First-Party Apps & Features | **31** | 15.5% |
 | `performance_crash_freeze` | Performance & Stability | **30** | 15.0% |
-| `other` | Foreign Language / Presales / Directory / Courtesy | **30** | 15.0% |
 | `battery_power_issue` | Battery & Power | **27** | 13.5% |
-| `software_update_glitch` | OS & Software Updates (Letter "I", UI glitches) | **23** | 11.5% |
-| `account_access_security` | Apple ID, 2FA & Credentials | **21** | 10.5% |
-| `hardware_physical_accessory` | Hardware, Screen & Audio | **15** | 7.5% |
+| `software_update_glitch` | OS & Software Updates (Letter "I", UI glitches) | **25** | 12.5% |
+| `account_access_security` | Apple ID, 2FA & Credentials | **20** | 10.0% |
+| `hardware_physical_accessory` | Hardware, Screen & Audio | **12** | 6.0% |
 | `connectivity_network_issue` | Wi-Fi, Bluetooth & Cellular | **11** | 5.5% |
 | `billing_purchases_subscriptions` | Charges, Refunds & Subscriptions | **8** | 4.0% |
 | `vague_complaint_unclear` | Ambiguous / Frustration Intake | **4** | 2.0% |
@@ -49,18 +49,18 @@ All records strictly conform to the schema defined in `data/gold/schema.json` an
 
 | Triage Routing | Count | Proportion | Typical Action |
 |:---|:---:|:---:|:---|
-| `auto_handle` (`escalate: false`) | **107** | 53.5% | Automated reply with Knowledge Base link or intake probe |
-| `escalate_human` (`escalate: true`) | **93** | 46.5% | Routed to specialized human agents or private channel |
+| `auto_handle` (`escalate: false`) | **97** | 48.5% | Automated reply with Knowledge Base link or intake probe |
+| `escalate_human` (`escalate: true`) | **103** | 51.5% | Routed to specialized human agents or private channel |
 
-### 3.3 Escalation Reason Breakdown (93 Escalated Items)
+### 3.3 Escalation Reason Breakdown (103 Escalated Items)
 
 | Escalation Reason Code | Count | Proportion of Gold | Applicable Domain |
 |:---|:---:|:---:|:---|
 | `channel_transition` | **69** | 34.5% | Proactive DM transfer or active DM in progress |
-| `account_security_credentials` | **12** | 6.0% | Apple ID lockouts, 2FA, password reset, phishing |
-| `physical_hardware_safety` | **9** | 4.5% | Screen crack, liquid spill, broken audio/mic, repair |
-| `financial_billing_transaction` | **3** | 1.5% | Refund claim, subscription cancellation, unauthorized billing |
-| *(None / Auto-handled)* | 107 | 53.5% | Standard technical self-service resolution |
+| `account_security_credentials` | **17** | 8.5% | Apple ID lockouts, 2FA, password reset, phishing |
+| `physical_hardware_safety` | **11** | 5.5% | Screen crack, liquid spill, broken audio/mic, repair |
+| `financial_billing_transaction` | **6** | 3.0% | Refund claim, subscription cancellation, unauthorized billing |
+| *(None / Auto-handled)* | 97 | 48.5% | Standard technical self-service resolution |
 
 ---
 
