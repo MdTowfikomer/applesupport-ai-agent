@@ -73,7 +73,7 @@ To create a statistically sound evaluation dataset, we sampled **200 customer-su
 Each gold record was hand-annotated with:
 - `intent`: One of 10 canonical intents governed by explicit Codebook priority rules ([`docs/intent_codebook.md`](../docs/intent_codebook.md)).
 - `escalate`: A boolean flag indicating whether the query requires human specialist intervention.
-- `escalate_reason`: A mandatory categorical reason code when `escalate=True` (`account_security_credentials`, `billing_payment_dispute`, `physical_hardware_safety`, `legal_threat`, `channel_transition`, or `unsupported_device_scope`).
+- `escalate_reason`: A mandatory categorical reason code when `escalate=True` (`account_security_credentials`, `financial_billing_transaction`, `physical_hardware_safety`, `legal_regulatory_dispute`, `channel_transition`, or `missing_context_screenshot`).
 - `brand_text`: The verbatim historical response drafted by Apple’s human support staff.
 
 ---

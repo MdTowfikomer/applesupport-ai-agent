@@ -85,7 +85,7 @@ def classify_failure_mode(record: Dict[str, Any]) -> Tuple[str, str]:
                 "MODE_2_CHANNEL_TRANSITION_UNDER_ESCALATION",
                 "Human support agent chose to escalate to private DM for diagnostics, but rule triage evaluated inquiry as self-service auto-handle.",
             )
-        elif gold_reason in ["account_security_credentials", "billing_payment_dispute"]:
+        elif gold_reason in ["account_security_credentials", "financial_billing_transaction"]:
             return (
                 "MODE_2_CHANNEL_TRANSITION_UNDER_ESCALATION",
                 f"Subtle escalation trigger ({gold_reason}) was missed by keyword regex.",

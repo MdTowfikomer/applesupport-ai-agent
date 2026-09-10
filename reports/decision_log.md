@@ -55,7 +55,7 @@ This document details 12 critical, non-obvious engineering decisions made during
 ---
 
 ### 8. Requiring Verifiable Escalation Reason Codes for Every Escalation Decision
-- **Decision**: Enforced that `escalate=True` MUST be paired with a validated categorical reason code (`account_security_credentials`, `billing_payment_dispute`, `physical_hardware_safety`, `legal_threat`, `channel_transition`, `unsupported_device_scope`), enforced by validation schema tests.
+- **Decision**: Enforced that `escalate=True` MUST be paired with a validated categorical reason code (`account_security_credentials`, `financial_billing_transaction`, `physical_hardware_safety`, `legal_regulatory_dispute`, `channel_transition`, `missing_context_screenshot`), enforced by validation schema tests.
 - **Rejected Alternative**: Emitting a bare boolean flag (`escalate: true/false`).
 - **Non-Obvious Rationale**: A black-box escalation boolean provides zero auditability for contact center team leads. Categorical reason codes enable automated routing to specialized Tier-2 queues (e.g., Security vs. Billing vs. Hardware), audit logging, and SLA compliance tracking.
 
