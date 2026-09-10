@@ -154,4 +154,4 @@ Our headline benchmarks report **55.00% Intent Accuracy (53.57% Macro-F1)** and 
 
 3. **Lexical Overlap (ROUGE/BLEU) Penalizes Valid Brand Variations**:
    - The agent achieves ~28.3% ROUGE-1 and ~23.5% BLEU-1 against human gold tweets.
-   - **Why this is misleading**: Customer support allows multiple completely valid phrasing variations (e.g. asking for iOS version vs asking for device restart). Human evaluators rate the agent's replies as **92% within 1 point of expert quality**, demonstrating that lexical n-gram overlap systematically underestimates customer satisfaction and conversational efficacy.
+   - **Why this is misleading**: Customer support allows multiple completely valid phrasing variations (e.g. asking for iOS version vs asking for device restart). Furthermore, our judge-vs-human calibration shows **92.0% within-1 point agreement**, demonstrating that the LLM judge closely mirrors human QA evaluators on rubric adherence and conversational suitability, whereas surface-level lexical n-gram overlap (ROUGE/BLEU) tends to penalize semantically sound rephrasings.
