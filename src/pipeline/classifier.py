@@ -61,23 +61,35 @@ class IntentClassifier:
     with deterministic codebook rule fallback.
     """
 
-    def __init__(self, use_llm: bool = True, model_name: str = "gemini-2.5-flash"):
+    def __init__(self, use_llm: bool = True, model_name: str = "gemini-flash-latest"):
         self.use_llm = use_llm
         self.model_name = os.getenv("PIPELINE_MODEL", model_name)
         self.api_key = os.getenv("GEMINI_API_KEY")
-        self.model = None
+        self.client = None
+        self.config = None
+        self.legacy_model = None
 
         if self.use_llm and self.api_key:
             try:
-                import google.generativeai as genai
-                genai.configure(api_key=self.api_key)
-                self.model = genai.GenerativeModel(
-                    self.model_name,
-                    generation_config={"response_mime_type": "application/json"},
+                from google import genai
+                from google.genai import types
+                self.client = genai.Client(api_key=self.api_key)
+                self.config = types.GenerateContentConfig(
                     system_instruction=INTENT_PROMPT_SYSTEM,
+                    response_mime_type="application/json",
                 )
             except Exception:
-                self.model = None
+                try:
+                    import google.generativeai as legacy_genai
+                    legacy_genai.configure(api_key=self.api_key)
+                    self.legacy_model = legacy_genai.GenerativeModel(
+                        self.model_name,
+                        generation_config={"response_mime_type": "application/json"},
+                        system_instruction=INTENT_PROMPT_SYSTEM,
+                    )
+                except Exception:
+                    self.client = None
+                    self.legacy_model = None
 
     def classify_rule_based(self, text: str) -> str:
         """Deterministic keyword pattern matching complying with Codebook rules."""
@@ -109,13 +121,25 @@ class IntentClassifier:
 
     def classify(self, text: str) -> str:
         """Classifies customer message into one of 10 canonical intents."""
-        if not self.use_llm or not self.model:
+        if not self.use_llm or (not self.client and not self.legacy_model):
             return self.classify_rule_based(text)
 
         try:
-            prompt = f"Customer Tweet: \"{text}\"\nClassify the intent JSON:"
-            resp = self.model.generate_content(prompt)
-            data = json.loads(resp.text.strip())
+            prompt = f'Customer Tweet: "{text}"\nClassify the intent JSON:'
+            if self.client:
+                resp = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=prompt,
+                    config=self.config,
+                )
+                raw_text = resp.text.strip()
+            elif self.legacy_model:
+                resp = self.legacy_model.generate_content(prompt)
+                raw_text = resp.text.strip()
+            else:
+                return self.classify_rule_based(text)
+
+            data = json.loads(raw_text)
             pred_intent = data.get("intent", "").strip()
 
             if pred_intent in ALLOWED_INTENTS:

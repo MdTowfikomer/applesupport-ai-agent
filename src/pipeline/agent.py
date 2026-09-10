@@ -30,7 +30,7 @@ class AppleSupportAgent:
         holdout_ids_path: str = "data/gold/index_holdout_ids.txt",
         use_llm: bool = True,
         top_k: int = 3,
-        model_name: str = "gemini-2.5-flash",
+        model_name: str = "gemini-flash-latest",
     ):
         self.use_llm = use_llm
         self.top_k = top_k

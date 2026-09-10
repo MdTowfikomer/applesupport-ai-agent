@@ -36,22 +36,33 @@ class ResponseDrafter:
     RAG-grounded Response Drafter using Gemini LLM with offline fallback.
     """
 
-    def __init__(self, use_llm: bool = True, model_name: str = "gemini-2.5-flash"):
+    def __init__(self, use_llm: bool = True, model_name: str = "gemini-flash-latest"):
         self.use_llm = use_llm
         self.model_name = os.getenv("PIPELINE_MODEL", model_name)
         self.api_key = os.getenv("GEMINI_API_KEY")
-        self.model = None
+        self.client = None
+        self.config = None
+        self.legacy_model = None
 
         if self.use_llm and self.api_key:
             try:
-                import google.generativeai as genai
-                genai.configure(api_key=self.api_key)
-                self.model = genai.GenerativeModel(
-                    self.model_name,
+                from google import genai
+                from google.genai import types
+                self.client = genai.Client(api_key=self.api_key)
+                self.config = types.GenerateContentConfig(
                     system_instruction=DRAFTER_SYSTEM_PROMPT,
                 )
             except Exception:
-                self.model = None
+                try:
+                    import google.generativeai as legacy_genai
+                    legacy_genai.configure(api_key=self.api_key)
+                    self.legacy_model = legacy_genai.GenerativeModel(
+                        self.model_name,
+                        system_instruction=DRAFTER_SYSTEM_PROMPT,
+                    )
+                except Exception:
+                    self.client = None
+                    self.legacy_model = None
 
     def _format_offline_reply(
         self,
@@ -107,7 +118,7 @@ class ResponseDrafter:
         retrieved_context: Optional[List[Dict[str, Any]]] = None,
     ) -> str:
         """Drafts a grounded Twitter customer support reply."""
-        if not self.use_llm or not self.model:
+        if not self.use_llm or (not self.client and not self.legacy_model):
             return self._format_offline_reply(
                 customer_text, intent, escalate, escalate_reason, retrieved_context
             )
@@ -132,8 +143,21 @@ class ResponseDrafter:
                 f"Draft the Twitter reply for @AppleSupport:"
             )
 
-            response = self.model.generate_content(prompt)
-            draft_text = response.text.strip()
+            if self.client:
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=prompt,
+                    config=self.config,
+                )
+                draft_text = response.text.strip()
+            elif self.legacy_model:
+                response = self.legacy_model.generate_content(prompt)
+                draft_text = response.text.strip()
+            else:
+                return self._format_offline_reply(
+                    customer_text, intent, escalate, escalate_reason, retrieved_context
+                )
+
             # Clean accidental markdown quotes
             draft_text = re.sub(r'^["\']|["\']$', "", draft_text).strip()
             # Clean accidental leading customer handle

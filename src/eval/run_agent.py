@@ -27,7 +27,7 @@ def main():
     parser.add_argument("--samples", type=int, default=0, help="Number of gold samples to run (0 for none)")
     parser.add_argument("--offline", action="store_true", help="Run in deterministic offline mode without calling Gemini API")
     parser.add_argument("--top-k", type=int, default=3, help="Number of candidate resolutions to retrieve (default: 3)")
-    parser.add_argument("--model", type=str, default="gemini-2.5-flash", help="Gemini model name")
+    parser.add_argument("--model", type=str, default="gemini-flash-latest", help="Gemini model name")
     args = parser.parse_args()
 
     agent = AppleSupportAgent(
