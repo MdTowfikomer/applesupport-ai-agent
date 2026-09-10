@@ -1,0 +1,53 @@
+{
+  "metadata": {
+    "evaluator_model": "openai/gpt-oss-120b",
+    "provider": "groq",
+    "use_llm": true,
+    "sample_size": 25,
+    "rubric_file": "docs/judge_rubric.md",
+    "calibration_file": "data\\gold\\judge_calibration_25.jsonl"
+  },
+  "agreement_metrics": {
+    "overall": {
+      "dimension": "overall",
+      "sample_size": 25,
+      "pearson_r": 0.7902,
+      "spearman_rho": 0.5347,
+      "quadratic_weighted_kappa": 0.7897,
+      "exact_match_pct": 44.0,
+      "within_one_pct": 96.0,
+      "mean_absolute_error": 0.6
+    },
+    "relevance": {
+      "dimension": "relevance",
+      "sample_size": 25,
+      "pearson_r": 0.6494,
+      "spearman_rho": 0.4622,
+      "quadratic_weighted_kappa": 0.6259,
+      "exact_match_pct": 44.0,
+      "within_one_pct": 88.0,
+      "mean_absolute_error": 0.68
+    },
+    "tone": {
+      "dimension": "tone",
+      "sample_size": 25,
+      "pearson_r": 0.8445,
+      "spearman_rho": 0.6677,
+      "quadratic_weighted_kappa": 0.7116,
+      "exact_match_pct": 48.0,
+      "within_one_pct": 92.0,
+      "mean_absolute_error": 0.6
+    },
+    "actionability": {
+      "dimension": "actionability",
+      "sample_size": 25,
+      "pearson_r": 0.7957,
+      "spearman_rho": 0.6907,
+      "quadratic_weighted_kappa": 0.7805,
+      "exact_match_pct": 52.0,
+      "within_one_pct": 92.0,
+      "mean_absolute_error": 0.56
+    }
+  },
+  "safety_guardrail_exact_agreement": 100.0
+}

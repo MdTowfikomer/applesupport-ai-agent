@@ -109,8 +109,47 @@ pytest tests/ -v
    - T8/T7 improves escalation precision to **72.00%** (+20.5% gain over trivial baseline) and correctly auto-handles **85.6%** of non-escalated cases (83/97 true negatives).
    - Trivial baseline has higher recall (100%) and F1 (67.99%) only because it unconditionally escalates every single tweet, causing massive agent fatigue (97 false alarms).
 
+### 5. Running LLM-as-a-Judge Calibration & Human Agreement (Task T9)
+
+Deliverable 3 establishes an automated, human-calibrated evaluation protocol using **`openai/gpt-oss-120b`** (via Groq LPUs for cross-model evaluation independence from the Gemini pipeline generator, strict JSON adherence, and zero self-preference bias):
+
+```bash
+# 1. Run full 25-item human-calibration agreement benchmark:
+python -m src.eval.run_judge --mode calibrate --model openai/gpt-oss-120b
+
+# 2. Evaluate a single ad-hoc inquiry & candidate reply:
+python -m src.eval.run_judge --mode single \
+  --query "My battery drains so fast after iOS 17 update" \
+  --reply "Thanks for reaching out. We can help with battery performance. Send us a DM: https://t.co/GDrqU22YpT" \
+  --intent battery_issues --escalate
+
+# 3. Run calibration in deterministic offline mode (no API keys required):
+python -m src.eval.run_judge --offline
+```
+
+> [!TIP]
+> **Groq Free Tier Rate-Limiting Guard**: The calibration runner includes built-in request pacing (`--delay 4.5`, ~5,300 TPM) and an exponential backoff retry handler to strictly comply with Groq Free Tier's 8,000 TPM limit.
+
+#### Human vs. LLM Judge Agreement Benchmark (`judge_calibration_25.jsonl`, 25 items)
+
+The judge was calibrated against **25 human-annotated customer resolutions** spanning diverse technical inquiries, routing edge cases, and safety failures:
+
+| Evaluation Dimension | Pearson $r$ | Spearman $\rho$ | Cohen's QWK ($\kappa$) | Exact Match (%) | Within-1 Point (%) | MAE |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Overall Quality (Primary)** | **0.7902** | **0.5347** | **0.7897** | 44.0% | **96.0%** | **0.6000** |
+| Relevance & Precision | 0.6494 | 0.4622 | 0.6259 | 44.0% | 88.0% | 0.6800 |
+| Tone & Empathy | 0.8445 | 0.6677 | 0.7116 | 48.0% | 92.0% | 0.6000 |
+| Actionability & Escalation | 0.7957 | 0.6907 | 0.7805 | 52.0% | 92.0% | 0.5600 |
+| Safety Guardrails (Binary) | N/A | N/A | N/A | **100.0%** | **100.0%** | **0.0000** |
+
+- **Substantial Alignment ($\kappa = 0.7897$)**: Cohen's Quadratic Weighted Kappa indicates strong consensus between human expert annotators and `openai/gpt-oss-120b`.
+- **96% Within-1 Point Accuracy**: 24 out of 25 evaluations fall within 1 point of human judgment, demonstrating high reliability for continuous regression testing.
+- **100% Critical Safety Protection**: Perfect precision/recall in detecting safety, security, and privacy violations (e.g. credential harvesting or hazardous battery advice).
+- Detailed rubric anchors and scoring examples are documented in [`docs/judge_rubric.md`](docs/judge_rubric.md). Machine-readable outputs and Markdown reports are saved in [`reports/judge_agreement_summary.md`](reports/judge_agreement_summary.md) and [`reports/judge_agreement_results.json`](reports/judge_agreement_results.json).
+
 > [!NOTE]
 > All predictions are serialized separately to `reports/eval_results_agent.jsonl`, `reports/eval_results_simple.jsonl`, and `reports/eval_results_trivial.jsonl` (200 records each), and benchmark metrics to `reports/baseline_eval_results.json` and `reports/baseline_eval_summary.md`. The gold dataset `data/gold/gold_eval_200.jsonl` remains 100% untouched and immutable. All 200 holdout IDs in `data/gold/index_holdout_ids.txt` remain strictly excluded from any retrieval index.
+
 
 ---
 
