@@ -1,15 +1,20 @@
-# Task T5 Baseline Evaluation Summary
+# AppleSupport Baseline Evaluation Summary (Tasks T5 & T6)
 
-## 1. Executive Summary
+## 1. Executive Summary & Benchmark Floor
 
-This report documents the baseline performance established by non-learning dummy baselines on `data/gold/gold_eval_200.jsonl`.
+This report documents empirical baseline performance established on `data/gold/gold_eval_200.jsonl`.
 
-| Baseline | Target Task | Accuracy | Macro-F1 | Precision | Recall | F1-Score |
-|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Majority Intent (`other`)** | Intent (10 classes) | **16.00%** | **2.76%** | N/A | N/A | N/A |
-| **Always Escalate (`True`)** | Escalation (Binary) | **51.50%** | N/A | **51.50%** | **100.00%** | **67.99%** |
+| Baseline Pipeline | Intent Accuracy | Intent Macro-F1 | Escalation Accuracy | Escalation F1 | ROUGE-1 F1 | ROUGE-L F1 | BLEU-1 |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Trivial Baseline Agent (T6)** | **16.00%** | **2.76%** | **51.50%** | **67.99%** | **33.98%** | **27.40%** | **29.29%** |
 
-## 2. Intent Classification Breakdown (Majority Intent)
+## 2. Trivial Baseline Agent Configuration
+
+- **Intent Decision**: Fixed majority class (`other`)
+- **Escalation Routing**: Fixed majority decision (`escalate = True`, reason = `channel_transition`)
+- **Canned Reply Template**: `"Thanks for reaching out to us. We'd like to help get this resolved. Please send us a DM so we can look into this with you: https://t.co/GDrqU22YpT"`
+
+### Intent Classification Breakdown
 
 **Overall Accuracy**: `16.00%` (32/200)
 **Macro-F1**: `2.76%` | **Weighted-F1**: `4.41%`
@@ -57,7 +62,7 @@ Actual \ Pred                [1]   [2]   [3]   [4]   [5]   [6]   [7]   [8]   [9]
 Total Predicted                0     0     0     0     0     0     0     0     0   200    200
 ```
 
-## 3. Escalation Triage Breakdown (Always Escalate)
+### Escalation Triage Breakdown
 
 - **Escalation Accuracy**: `51.50%` (103/200)
 - **Precision (escalate=True)**: `51.50%` (103/200)
@@ -69,3 +74,11 @@ Total Predicted                0     0     0     0     0     0     0     0     0
 | **Actual: Escalate (True)** | **TP = 103** | **FN = 0** | 103 |
 | **Actual: Auto-Handle (False)** | **FP = 97** | **TN = 0** | 97 |
 | **Total Predicted** | 200 | 0 | 200 |
+
+### Reply Generation Lexical Overlap
+
+- **ROUGE-1 F1**: `33.98%`
+- **ROUGE-2 F1**: `13.81%`
+- **ROUGE-L F1**: `27.40%`
+- **BLEU-1**: `29.29%`
+- **Mean Reply Length**: `31.0 words` (146.0 chars) vs Gold: `26.9 words` (140.3 chars)

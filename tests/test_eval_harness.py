@@ -19,7 +19,11 @@ from src.evaluation.metrics import (
     compute_binary_escalation_metrics,
     compute_confusion_matrix,
 )
-from src.evaluation.baselines import MajorityIntentBaseline, AlwaysEscalateBaseline
+from src.evaluation.baselines import (
+    MajorityIntentBaseline,
+    AlwaysEscalateBaseline,
+    TrivialBaselineAgent,
+)
 from src.evaluation.validator import (
     validate_gold_records,
     GoldValidationError,
@@ -127,6 +131,63 @@ class TestBaselines(unittest.TestCase):
             self.assertTrue(p["predicted_escalate"])
             self.assertEqual(p["baseline_name"], "always_escalate")
 
+    def test_trivial_baseline_agent(self):
+        toy_records = [
+            {"thread_id": "t1", "customer_text": "Need help", "intent": "battery_power_issue", "escalate": True, "escalate_reason": "physical_hardware_safety"},
+            {"thread_id": "t2", "customer_text": "Battery bad", "intent": "battery_power_issue", "escalate": True, "escalate_reason": "physical_hardware_safety"},
+            {"thread_id": "t3", "customer_text": "How to update", "intent": "apps_feature_howto", "escalate": False, "escalate_reason": None},
+        ]
+        agent = TrivialBaselineAgent().fit(toy_records)
+        self.assertEqual(agent.majority_intent, "battery_power_issue")
+        self.assertTrue(agent.escalate)
+        self.assertEqual(agent.escalate_reason, "physical_hardware_safety")
+
+        preds = agent.predict(toy_records)
+        self.assertEqual(len(preds), 3)
+        for p in preds:
+            self.assertEqual(p["predicted_intent"], "battery_power_issue")
+            self.assertTrue(p["predicted_escalate"])
+            self.assertEqual(p["predicted_escalate_reason"], "physical_hardware_safety")
+            self.assertIn("https://t.co/GDrqU22YpT", p["predicted_reply"])
+            self.assertEqual(p["baseline_name"], "trivial_baseline_agent")
+
+    def test_hand_built_lexical_reply_metrics(self):
+        from src.evaluation.metrics import (
+            tokenize_text,
+            compute_ngram_overlap,
+            compute_rouge_l,
+            compute_bleu_1,
+            compute_reply_lexical_metrics
+        )
+        # Known pair
+        ref = "we are here to help please dm us"
+        hyp = "we want to help send us a dm"
+        ref_toks = tokenize_text(ref)
+        hyp_toks = tokenize_text(hyp)
+
+        # Unigrams: 5 common words (we, to, help, dm, us) out of 8 words in each
+        p1, r1, f1 = compute_ngram_overlap(ref_toks, hyp_toks, n=1)
+        self.assertAlmostEqual(p1, 5 / 8, places=4)
+        self.assertAlmostEqual(r1, 5 / 8, places=4)
+        self.assertAlmostEqual(f1, 5 / 8, places=4)
+
+        # Bigrams: only ('to', 'help') is common out of 7 bigrams in each
+        p2, r2, f2 = compute_ngram_overlap(ref_toks, hyp_toks, n=2)
+        self.assertAlmostEqual(p2, 1 / 7, places=4)
+        self.assertAlmostEqual(r2, 1 / 7, places=4)
+
+        # ROUGE-L: LCS is 4 ('we', 'to', 'help', 'dm') or ('we', 'to', 'help', 'us')
+        pl, rl, fl = compute_rouge_l(ref_toks, hyp_toks)
+        self.assertAlmostEqual(pl, 4 / 8, places=4)
+        self.assertAlmostEqual(rl, 4 / 8, places=4)
+
+        # Overall batch metrics
+        batch_metrics = compute_reply_lexical_metrics([ref], [hyp])
+        self.assertAlmostEqual(batch_metrics["rouge_1_f1"], 0.625, places=3)
+        self.assertAlmostEqual(batch_metrics["rouge_2_f1"], 1 / 7, places=3)
+        self.assertAlmostEqual(batch_metrics["rouge_l_f1"], 0.5, places=3)
+        self.assertEqual(batch_metrics["num_evaluated_replies"], 1)
+
 
 class TestGoldDatasetValidation(unittest.TestCase):
     """Verifies that validator catches all classes of invalid gold records."""
@@ -222,22 +283,47 @@ class TestEvaluationEndToEnd(unittest.TestCase):
         # Assert metadata
         self.assertEqual(results["metadata"]["num_samples"], 200)
 
-        # Assert Baseline 1 (Majority Intent)
-        b1 = results["baseline_1_majority_intent"]
-        self.assertEqual(b1["predicted_class"], "other")
-        self.assertAlmostEqual(b1["overall_accuracy"], 0.16, places=2)  # 32 / 200 = 16.0%
-        self.assertAlmostEqual(b1["macro_f1"], 0.0276, places=4)
+        # Assert Trivial Baseline Agent (T6)
+        self.assertIn("trivial_baseline_agent", results)
+        tb = results["trivial_baseline_agent"]
+        self.assertEqual(tb["majority_intent"], "other")
+        self.assertTrue(tb["escalate_decision"])
+        self.assertEqual(tb["escalate_reason"], "channel_transition")
+        self.assertAlmostEqual(tb["intent_metrics"]["accuracy"], 0.16, places=2)
+        self.assertAlmostEqual(tb["intent_metrics"]["macro_f1"], 0.0276, places=4)
+        self.assertAlmostEqual(tb["escalation_metrics"]["accuracy"], 0.515, places=3)
+        self.assertAlmostEqual(tb["escalation_metrics"]["f1"], 0.6799, places=4)
+        self.assertGreater(tb["reply_metrics"]["rouge_1_f1"], 0.0)
+        self.assertGreater(tb["reply_metrics"]["rouge_l_f1"], 0.0)
 
-        # Assert Baseline 2 (Always Escalate)
-        b2 = results["baseline_2_always_escalate"]
-        self.assertEqual(b2["tp"], 103)
-        self.assertEqual(b2["fp"], 97)
-        self.assertEqual(b2["tn"], 0)
-        self.assertEqual(b2["fn"], 0)
-        self.assertAlmostEqual(b2["escalation_accuracy"], 0.515, places=3)
-        self.assertAlmostEqual(b2["recall"], 1.0, places=4)
-        self.assertAlmostEqual(b2["precision"], 0.515, places=3)
-        self.assertAlmostEqual(b2["f1"], 0.6799, places=4)
+        # Assert predictions file was generated with 200 items
+        pred_file = reports_dir / "eval_results_trivial.jsonl"
+        self.assertTrue(pred_file.exists())
+        import json
+        with open(pred_file, "r", encoding="utf-8") as f:
+            pred_lines = [json.loads(line) for line in f]
+        self.assertEqual(len(pred_lines), 200)
+        self.assertIn("predicted_reply", pred_lines[0])
+        self.assertIn("gold_reply", pred_lines[0])
+
+        # Assert Component Baseline 1 (Majority Intent)
+        if "majority_intent_baseline" in results:
+            b1 = results["majority_intent_baseline"]
+            self.assertEqual(b1["predicted_class"], "other")
+            self.assertAlmostEqual(b1["accuracy"], 0.16, places=2)
+            self.assertAlmostEqual(b1["macro_f1"], 0.0276, places=4)
+
+        # Assert Component Baseline 2 (Always Escalate)
+        if "always_escalate_baseline" in results:
+            b2 = results["always_escalate_baseline"]
+            self.assertEqual(b2["tp"], 103)
+            self.assertEqual(b2["fp"], 97)
+            self.assertEqual(b2["tn"], 0)
+            self.assertEqual(b2["fn"], 0)
+            self.assertAlmostEqual(b2["accuracy"], 0.515, places=3)
+            self.assertAlmostEqual(b2["recall"], 1.0, places=4)
+            self.assertAlmostEqual(b2["precision"], 0.515, places=3)
+            self.assertAlmostEqual(b2["f1"], 0.6799, places=4)
 
 
 if __name__ == "__main__":

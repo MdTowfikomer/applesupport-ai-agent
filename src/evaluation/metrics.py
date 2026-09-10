@@ -196,3 +196,135 @@ def format_binary_report(metrics: Dict[str, Any]) -> str:
     lines.append(f"| **Actual: Auto-Handle (False)** | **FP = {metrics['fp']}** | **TN = {metrics['tn']}** | {metrics['negative_support']} |")
     lines.append(f"| **Total Predicted** | {metrics['tp'] + metrics['fp']} | {metrics['fn'] + metrics['tn']} | {metrics['total_samples']} |")
     return "\n".join(lines)
+
+
+# ==============================================================================
+# Text Reply Lexical Metrics (ROUGE-1, ROUGE-2, ROUGE-L, BLEU-1, Length Stats)
+# ==============================================================================
+
+import re
+import math
+
+def tokenize_text(text: str) -> List[str]:
+    """Lowercase alphanumeric word tokenization."""
+    if not text:
+        return []
+    return re.findall(r"\b\w+\b", text.lower())
+
+def compute_ngrams(tokens: List[str], n: int) -> Counter:
+    """Extracts n-gram frequency counter."""
+    return Counter(tuple(tokens[i:i + n]) for i in range(len(tokens) - n + 1))
+
+def compute_ngram_overlap(ref_tokens: List[str], hyp_tokens: List[str], n: int) -> Tuple[float, float, float]:
+    """Computes precision, recall, and F1 for n-grams."""
+    if not ref_tokens or not hyp_tokens:
+        return 0.0, 0.0, 0.0
+    ref_counts = compute_ngrams(ref_tokens, n)
+    hyp_counts = compute_ngrams(hyp_tokens, n)
+
+    total_ref = sum(ref_counts.values())
+    total_hyp = sum(hyp_counts.values())
+    if total_ref == 0 or total_hyp == 0:
+        return 0.0, 0.0, 0.0
+
+    overlap = sum(min(count, ref_counts.get(ng, 0)) for ng, count in hyp_counts.items())
+    prec = overlap / total_hyp
+    rec = overlap / total_ref
+    f1 = (2 * prec * rec) / (prec + rec) if (prec + rec) > 0 else 0.0
+    return prec, rec, f1
+
+def compute_lcs_length(tokens1: List[str], tokens2: List[str]) -> int:
+    """Computes length of longest common subsequence (LCS)."""
+    m, n = len(tokens1), len(tokens2)
+    if m == 0 or n == 0:
+        return 0
+    dp = [0] * (n + 1)
+    for i in range(1, m + 1):
+        prev = 0
+        for j in range(1, n + 1):
+            temp = dp[j]
+            if tokens1[i - 1] == tokens2[j - 1]:
+                dp[j] = prev + 1
+            else:
+                dp[j] = max(dp[j], dp[j - 1])
+            prev = temp
+    return dp[n]
+
+def compute_rouge_l(ref_tokens: List[str], hyp_tokens: List[str]) -> Tuple[float, float, float]:
+    """Computes ROUGE-L precision, recall, and F1."""
+    if not ref_tokens or not hyp_tokens:
+        return 0.0, 0.0, 0.0
+    lcs_len = compute_lcs_length(ref_tokens, hyp_tokens)
+    prec = lcs_len / len(hyp_tokens) if hyp_tokens else 0.0
+    rec = lcs_len / len(ref_tokens) if ref_tokens else 0.0
+    f1 = (2 * prec * rec) / (prec + rec) if (prec + rec) > 0 else 0.0
+    return prec, rec, f1
+
+def compute_bleu_1(ref_tokens: List[str], hyp_tokens: List[str]) -> float:
+    """Computes sentence-level BLEU-1 with brevity penalty."""
+    if not hyp_tokens:
+        return 0.0
+    prec, _, _ = compute_ngram_overlap(ref_tokens, hyp_tokens, n=1)
+    if prec == 0.0:
+        return 0.0
+    c = len(hyp_tokens)
+    r = len(ref_tokens)
+    bp = 1.0 if c > r else math.exp(1 - r / c) if c > 0 else 0.0
+    return bp * prec
+
+def compute_reply_lexical_metrics(references: List[str], hypotheses: List[str]) -> Dict[str, Any]:
+    """
+    Computes lexical overlap metrics comparing agent replies against gold brand replies:
+    - Mean ROUGE-1 F1, ROUGE-2 F1, ROUGE-L F1
+    - Mean BLEU-1
+    - Character and token length statistics
+    """
+    assert len(references) == len(hypotheses), f"Length mismatch: {len(references)} vs {len(hypotheses)}"
+    if not references:
+        return {}
+
+    r1_f1s, r2_f1s, rl_f1s, bleu1s = [], [], [], []
+    hyp_char_lens, hyp_token_lens = [], []
+    ref_char_lens, ref_token_lens = [], []
+
+    for ref, hyp in zip(references, hypotheses):
+        ref_toks = tokenize_text(ref)
+        hyp_toks = tokenize_text(hyp)
+
+        _, _, r1 = compute_ngram_overlap(ref_toks, hyp_toks, n=1)
+        _, _, r2 = compute_ngram_overlap(ref_toks, hyp_toks, n=2)
+        _, _, rl = compute_rouge_l(ref_toks, hyp_toks)
+        b1 = compute_bleu_1(ref_toks, hyp_toks)
+
+        r1_f1s.append(r1)
+        r2_f1s.append(r2)
+        rl_f1s.append(rl)
+        bleu1s.append(b1)
+
+        hyp_char_lens.append(len(hyp))
+        hyp_token_lens.append(len(hyp_toks))
+        ref_char_lens.append(len(ref))
+        ref_token_lens.append(len(ref_toks))
+
+    n = len(references)
+    return {
+        "rouge_1_f1": round(sum(r1_f1s) / n, 4),
+        "rouge_2_f1": round(sum(r2_f1s) / n, 4),
+        "rouge_l_f1": round(sum(rl_f1s) / n, 4),
+        "bleu_1": round(sum(bleu1s) / n, 4),
+        "mean_hyp_char_length": round(sum(hyp_char_lens) / n, 1),
+        "mean_hyp_token_length": round(sum(hyp_token_lens) / n, 1),
+        "mean_ref_char_length": round(sum(ref_char_lens) / n, 1),
+        "mean_ref_token_length": round(sum(ref_token_lens) / n, 1),
+        "num_evaluated_replies": n
+    }
+
+def format_reply_metrics(metrics: Dict[str, Any]) -> str:
+    """Formats reply generation lexical evaluation metrics into clean markdown."""
+    lines = []
+    lines.append(f"- **ROUGE-1 F1**: `{metrics['rouge_1_f1'] * 100:.2f}%`")
+    lines.append(f"- **ROUGE-2 F1**: `{metrics['rouge_2_f1'] * 100:.2f}%`")
+    lines.append(f"- **ROUGE-L F1**: `{metrics['rouge_l_f1'] * 100:.2f}%`")
+    lines.append(f"- **BLEU-1**: `{metrics['bleu_1'] * 100:.2f}%`")
+    lines.append(f"- **Mean Reply Length**: `{metrics['mean_hyp_token_length']} words` ({metrics['mean_hyp_char_length']} chars) vs Gold: `{metrics['mean_ref_token_length']} words` ({metrics['mean_ref_char_length']} chars)")
+    return "\n".join(lines)

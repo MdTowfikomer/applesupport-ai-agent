@@ -55,12 +55,15 @@ To process the raw dataset yourself:
    ```
    *(Note: The script safely checks for `data/raw/twcs.csv` and fails clearly with explicit download commands if missing).*
 
-### 4. Running Baselines and Evaluation (Task T5)
+### 4. Running Baselines and Evaluation (Tasks T5 & T6)
 
 The evaluation harness evaluates `data/gold/gold_eval_200.jsonl` offline **without requiring API keys or external services**.
 
 ```bash
-# Run the evaluation harness on gold with sanity-check baselines:
+# Run the T6 Trivial Baseline agent (majority intent + always escalate + canned DM reply):
+python -m src.eval.run_baseline --type trivial
+
+# Or run the full evaluation harness directly:
 python -m scripts.eval_gold
 
 # Run unit and integration tests:
@@ -69,15 +72,33 @@ pytest tests/ -v
 python -m unittest discover tests
 ```
 
-#### Expected T5 Output & Baseline Benchmark Results
+#### Trivial Baseline Benchmark Results (`gold_eval_200.jsonl`)
 
-| Baseline | Evaluated Task | Accuracy | Macro-F1 | Precision | Recall | F1-Score |
+The Trivial Baseline agent (`src/baselines/trivial.py`) establishes the absolute empirical floor:
+- **Intent**: Predicts gold majority class (`"other"`).
+- **Escalation**: Always escalates (`True`, `reason="channel_transition"`).
+- **Reply Drafting**: Employs the canonical `@AppleSupport` historical canned DM transfer template (`"Thanks for reaching out to us. We'd like to help get this resolved. Please send us a DM so we can look into this with you: https://t.co/GDrqU22YpT"`).
+
+##### 1. Intent Classification & Escalation Triage
+
+| Baseline Component | Evaluated Task | Accuracy | Macro-F1 | Precision | Recall | Binary F1 |
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Majority-Intent (`other`)** | Intent (10 classes) | **16.00%** | **2.76%** | N/A | N/A | N/A |
+| **Majority-Intent (`other`)** | Intent (10 classes) | **16.00%** | **2.76%** | 16.00% | 100.00% | 27.59% |
 | **Always-Escalate (`True`)** | Escalation (Binary) | **51.50%** | N/A | **51.50%** | **100.00%** | **67.99%** |
 
+##### 2. Reply Generation (Lexical Overlap against Gold `brand_text`)
+
+| Metric | Score / Value | Reference Context |
+|:---|:---:|:---|
+| **ROUGE-1 F1** | **33.98%** | Unigram lexical overlap against human Apple Support replies |
+| **ROUGE-2 F1** | **13.81%** | Bigram sequence overlap |
+| **ROUGE-L F1** | **27.40%** | Longest common subsequence |
+| **BLEU-1** | **29.29%** | Unigram precision with brevity penalty |
+| **Avg Tokens (Pred / Ref)** | **31.0 / 26.9** | Ratio: 1.15 |
+| **Avg Chars (Pred / Ref)** | **146.0 / 140.3** | Ratio: 1.04 |
+
 > [!NOTE]
-> These are non-learning, rule-free sanity-check baselines designed to establish the empirical performance floor on the 200-sample gold benchmark. All outputs are serialized to `reports/baseline_eval_results.json` without altering the gold JSONL dataset. Holdout IDs in `data/gold/index_holdout_ids.txt` remain strictly excluded from retrieval indexes.
+> All predictions are serialized separately to `reports/eval_results_trivial.jsonl` (200 records), and metrics to `reports/baseline_eval_results.json` and `reports/baseline_eval_summary.md`. The gold dataset `data/gold/gold_eval_200.jsonl` remains 100% untouched and immutable. All 200 holdout IDs in `data/gold/index_holdout_ids.txt` remain strictly excluded from any retrieval index.
 
 ---
 
