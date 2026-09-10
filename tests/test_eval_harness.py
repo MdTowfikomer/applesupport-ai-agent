@@ -23,6 +23,7 @@ from src.evaluation.baselines import (
     MajorityIntentBaseline,
     AlwaysEscalateBaseline,
     TrivialBaselineAgent,
+    SimpleBaselineAgent,
 )
 from src.evaluation.validator import (
     validate_gold_records,
@@ -188,6 +189,58 @@ class TestBaselines(unittest.TestCase):
         self.assertAlmostEqual(batch_metrics["rouge_l_f1"], 0.5, places=3)
         self.assertEqual(batch_metrics["num_evaluated_replies"], 1)
 
+    def test_simple_baseline_agent(self):
+        agent = SimpleBaselineAgent(
+            subsample_path="data/subsample/applesupport_threads_5k.jsonl",
+            holdout_ids_path="data/gold/index_holdout_ids.txt"
+        )
+        # Isolation assertions
+        self.assertEqual(len(agent.holdout_ids), 200)
+        self.assertEqual(len(agent.corpus), 4800)
+        self.assertFalse(any(doc["thread_id"] in agent.holdout_ids for doc in agent.corpus))
+
+        # Intent classification assertions
+        self.assertEqual(agent.predict_intent("My phone battery drains in 1 hour"), "battery_power_issue")
+        self.assertEqual(agent.predict_intent("Cannot log into Apple ID, password reset failed"), "account_access_security")
+        self.assertEqual(agent.predict_intent("Wi-Fi keeps dropping and Bluetooth won't connect"), "connectivity_network_issue")
+        self.assertEqual(agent.predict_intent("The glass screen is cracked and broken"), "hardware_physical_accessory")
+        self.assertEqual(agent.predict_intent("I was charged twice on my credit card, need a refund"), "billing_purchases_subscriptions")
+        self.assertEqual(agent.predict_intent("How to delete emails in Apple Mail app"), "apps_feature_howto")
+        self.assertEqual(agent.predict_intent("Merci beaucoup pour votre aide, au revoir"), "other")
+
+        # Escalation triage assertions
+        esc, reason = agent.predict_escalation("Already sent a DM to you earlier", "battery_power_issue")
+        self.assertTrue(esc)
+        self.assertEqual(reason, "channel_transition")
+
+        esc, reason = agent.predict_escalation("Battery is smoking and swollen hot", "battery_power_issue")
+        self.assertTrue(esc)
+        self.assertEqual(reason, "physical_hardware_safety")
+
+        esc, reason = agent.predict_escalation("I will sue Apple and take you to court", "performance_crash_freeze")
+        self.assertTrue(esc)
+        self.assertEqual(reason, "legal_regulatory_dispute")
+
+        esc, reason = agent.predict_escalation("Forgot my Apple ID password", "account_access_security")
+        self.assertTrue(esc)
+        self.assertEqual(reason, "account_security_credentials")
+
+        esc, reason = agent.predict_escalation("https://t.co/abc12345", "vague_complaint_unclear")
+        self.assertTrue(esc)
+        self.assertEqual(reason, "missing_context_screenshot")
+
+        esc, reason = agent.predict_escalation("How to configure do not disturb on my iPhone", "apps_feature_howto")
+        self.assertFalse(esc)
+        self.assertIsNone(reason)
+
+        # TF-IDF retrieval assertion
+        reply, meta = agent.retrieve_reply("My screen is unresponsive after update")
+        self.assertTrue(isinstance(reply, str))
+        self.assertGreater(len(reply), 0)
+        self.assertIsNotNone(meta.get("retrieved_thread_id"))
+        self.assertNotIn(meta["retrieved_thread_id"], agent.holdout_ids)
+
+
 
 class TestGoldDatasetValidation(unittest.TestCase):
     """Verifies that validator catches all classes of invalid gold records."""
@@ -325,6 +378,26 @@ class TestEvaluationEndToEnd(unittest.TestCase):
             self.assertAlmostEqual(b2["precision"], 0.515, places=3)
             self.assertAlmostEqual(b2["f1"], 0.6799, places=4)
 
+        # Assert Simple Baseline Agent (Task T7)
+        if "simple_baseline_agent" in results:
+            sb = results["simple_baseline_agent"]
+            self.assertEqual(sb["retrieval_corpus_size"], 4800)
+            self.assertEqual(sb["holdout_ids_excluded"], 200)
+            self.assertGreater(sb["intent_metrics"]["accuracy"], 0.50)
+            self.assertGreater(sb["intent_metrics"]["macro_f1"], 0.45)
+            self.assertGreater(sb["escalation_metrics"]["precision"], 0.60)
+            self.assertGreater(sb["reply_metrics"]["rouge_1_f1"], 0.20)
+
+            # Assert simple predictions file was generated with 200 items
+            simple_pred_file = reports_dir / "eval_results_simple.jsonl"
+            self.assertTrue(simple_pred_file.exists())
+            with open(simple_pred_file, "r", encoding="utf-8") as f:
+                simple_lines = [json.loads(line) for line in f]
+            self.assertEqual(len(simple_lines), 200)
+            self.assertIn("predicted_reply", simple_lines[0])
+            self.assertIn("retrieved_thread_id", simple_lines[0])
+
 
 if __name__ == "__main__":
     unittest.main()
+

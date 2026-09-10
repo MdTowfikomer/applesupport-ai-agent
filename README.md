@@ -55,50 +55,50 @@ To process the raw dataset yourself:
    ```
    *(Note: The script safely checks for `data/raw/twcs.csv` and fails clearly with explicit download commands if missing).*
 
-### 4. Running Baselines and Evaluation (Tasks T5 & T6)
+### 4. Running Baselines and Evaluation (Tasks T5, T6 & T7)
 
 The evaluation harness evaluates `data/gold/gold_eval_200.jsonl` offline **without requiring API keys or external services**.
 
 ```bash
+# Run the T7 Simple Baseline agent (keyword intent + rule escalation + TF-IDF historical retrieval):
+python -m src.eval.run_baseline --type simple
+
 # Run the T6 Trivial Baseline agent (majority intent + always escalate + canned DM reply):
 python -m src.eval.run_baseline --type trivial
 
-# Or run the full evaluation harness directly:
-python -m scripts.eval_gold
+# Run the full comparative evaluation benchmark on all baselines:
+python -m scripts.eval_gold --baseline all
 
-# Run unit and integration tests:
-pytest tests/ -v
-# or via standard library:
+# Run unit and integration tests (both standard library and pytest):
 python -m unittest discover tests
+pytest tests/ -v
 ```
 
-#### Trivial Baseline Benchmark Results (`gold_eval_200.jsonl`)
+#### Empirical Baseline Benchmark Comparison (`gold_eval_200.jsonl`, 200 items)
 
-The Trivial Baseline agent (`src/baselines/trivial.py`) establishes the absolute empirical floor:
-- **Intent**: Predicts gold majority class (`"other"`).
-- **Escalation**: Always escalates (`True`, `reason="channel_transition"`).
-- **Reply Drafting**: Employs the canonical `@AppleSupport` historical canned DM transfer template (`"Thanks for reaching out to us. We'd like to help get this resolved. Please send us a DM so we can look into this with you: https://t.co/GDrqU22YpT"`).
+| Baseline System | Intent Accuracy | Intent Macro-F1 | Escalation Accuracy | Escalation Precision | Escalation Recall | Escalation F1 | ROUGE-1 F1 | ROUGE-L F1 | BLEU-1 |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Simple Baseline Agent (T7)** | **55.00%** | **53.57%** | **59.50%** | **72.00%** | 34.95% | 47.06% | **28.56%** | **24.04%** | **24.13%** |
+| **Trivial Baseline Agent (T6)** | 16.00% | 2.76% | 51.50% | 51.50% | **100.00%** | **67.99%** | 33.98% | 27.40% | 29.29% |
+| *Majority-Intent Only (T5)* | 16.00% | 2.76% | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
+| *Always-Escalate Only (T5)* | N/A | N/A | 51.50% | 51.50% | 100.00% | 67.99% | N/A | N/A | N/A |
 
-##### 1. Intent Classification & Escalation Triage
+##### Key Baseline Findings (T6 vs T7)
 
-| Baseline Component | Evaluated Task | Accuracy | Macro-F1 | Precision | Recall | Binary F1 |
-|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Majority-Intent (`other`)** | Intent (10 classes) | **16.00%** | **2.76%** | 16.00% | 100.00% | 27.59% |
-| **Always-Escalate (`True`)** | Escalation (Binary) | **51.50%** | N/A | **51.50%** | **100.00%** | **67.99%** |
+1. **Intent Classification**:
+   - **Trivial Baseline (T6)**: Predicts fixed majority class (`"other"`), obtaining **16.00%** accuracy and **2.76%** Macro-F1.
+   - **Simple Baseline (T7)**: Uses codebook-grounded regex pattern matching respecting priority rules (`account_access_security` > `billing_purchases_subscriptions` > `hardware_physical_accessory` > symptoms > `vague_complaint_unclear`). Jumps to **55.00%** Accuracy and **53.57%** Macro-F1 (**19.4x improvement in Macro-F1**; Battery F1: **98.1%**, Account Security F1: **73.2%**).
 
-##### 2. Reply Generation (Lexical Overlap against Gold `brand_text`)
+2. **Escalation Triage**:
+   - **Trivial Baseline (T6)**: Always escalates (`True`), yielding 100% recall but suffering 97 false alarms (Precision: **51.50%**).
+   - **Simple Baseline (T7)**: Applies deterministic trigger rules for safety hazards, legal disputes, credential loss, billing disputes, and active channel transitions. Correctly rejects **83 of 97** non-escalation cases (True Negatives: 85.6%), boosting Precision to **72.00%** (+20.5% gain) and Accuracy to **59.50%**.
 
-| Metric | Score / Value | Reference Context |
-|:---|:---:|:---|
-| **ROUGE-1 F1** | **33.98%** | Unigram lexical overlap against human Apple Support replies |
-| **ROUGE-2 F1** | **13.81%** | Bigram sequence overlap |
-| **ROUGE-L F1** | **27.40%** | Longest common subsequence |
-| **BLEU-1** | **29.29%** | Unigram precision with brevity penalty |
-| **Avg Tokens (Pred / Ref)** | **31.0 / 26.9** | Ratio: 1.15 |
-| **Avg Chars (Pred / Ref)** | **146.0 / 140.3** | Ratio: 1.04 |
+3. **Response Drafting**:
+   - **Trivial Baseline (T6)**: Static generic canned DM transfer link.
+   - **Simple Baseline (T7)**: Grounded pure-Python TF-IDF retrieval over **4,800** historical AppleSupport threads (strictly excluding all 200 holdout records). Yields domain-accurate troubleshooting steps matching customer queries (ROUGE-1: **28.56%**, ROUGE-L: **24.04%**, BLEU-1: **24.13%**, Avg Length: 25.3 tokens vs Gold Reference 26.9 tokens).
 
 > [!NOTE]
-> All predictions are serialized separately to `reports/eval_results_trivial.jsonl` (200 records), and metrics to `reports/baseline_eval_results.json` and `reports/baseline_eval_summary.md`. The gold dataset `data/gold/gold_eval_200.jsonl` remains 100% untouched and immutable. All 200 holdout IDs in `data/gold/index_holdout_ids.txt` remain strictly excluded from any retrieval index.
+> All predictions are serialized separately to `reports/eval_results_simple.jsonl` and `reports/eval_results_trivial.jsonl` (200 records each), and benchmark metrics to `reports/baseline_eval_results.json` and `reports/baseline_eval_summary.md`. The gold dataset `data/gold/gold_eval_200.jsonl` remains 100% untouched and immutable. All 200 holdout IDs in `data/gold/index_holdout_ids.txt` remain strictly excluded from any retrieval index.
 
 ---
 

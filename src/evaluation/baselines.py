@@ -146,3 +146,8 @@ class TrivialBaselineAgent:
             predictions.append(pred)
         return predictions
 
+
+# Re-export SimpleBaselineAgent from src.baselines.simple
+from src.baselines.simple import SimpleBaselineAgent  # noqa: E402
+
+

@@ -21,9 +21,9 @@ def main():
     parser.add_argument(
         "--type",
         type=str,
-        default="trivial",
-        choices=["trivial", "majority_intent", "always_escalate", "all"],
-        help="Baseline type to run (default: trivial)"
+        default="simple",
+        choices=["simple", "trivial", "majority_intent", "always_escalate", "all"],
+        help="Baseline type to run (default: simple)"
     )
     parser.add_argument(
         "--gold-path",
