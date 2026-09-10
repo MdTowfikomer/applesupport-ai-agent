@@ -125,7 +125,7 @@ def run_calibration(
     print("\n" + "=" * 80)
     print(" HUMAN VS. LLM JUDGE AGREEMENT SUMMARY (Primary: Overall Quality)")
     print("=" * 80)
-    print(f"- **Evaluator Model**              : `{primary['dimension']}` via {judge.model_name if use_llm else 'offline_heuristic'}")
+    print(f"- **Evaluator Model**              : {judge.model_name if use_llm else 'offline_heuristic'}")
     print(f"- **Sample Size**                  : {primary['sample_size']} human-annotated cases")
     print(f"- **Quadratic Weighted Kappa (QWK)**: {primary['quadratic_weighted_kappa']:.4f}")
     print(f"- **Pearson Correlation (r)**      : {primary['pearson_r']:.4f}")
