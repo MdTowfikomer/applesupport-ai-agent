@@ -98,6 +98,8 @@ pytest tests/ -v
 ##### Key Findings & Pipeline Architecture (Task T8)
 
 1. **Autonomous 4-Stage Pipeline Architecture** (`src/pipeline/`):
+   - **Execution Sequence**: $\text{Intent} \longrightarrow \text{Retrieve } k \longrightarrow \text{Escalate Triage} \longrightarrow \text{Draft Reply}$.  
+     *(Sequencing Rationale: Triage is intentionally executed prior to response drafting so the drafter can dynamically adapt its reply to the triage decision—embedding official DM escalation links for safety, security, and billing escalations, or providing grounded troubleshooting steps for auto-handled inquiries).*
    - **Intent Classification** ([`classifier.py`](file:///D:/Programming/major-projects/Customer_support_agent/src/pipeline/classifier.py)): 10 canonical classes adhering strictly to Codebook priority rules (`account_access_security` > `billing_purchases_subscriptions` > `hardware_physical_accessory` > symptoms > `vague_complaint_unclear`). Supports Gemini (`gemini-flash-latest`) with offline fallback.
    - **Historical Resolution Retrieval** ([`retriever.py`](file:///D:/Programming/major-projects/Customer_support_agent/src/pipeline/retriever.py)): BM25 / TF-IDF nearest-neighbor retrieval over **4,800 non-holdout threads** with strict mathematical assertion of zero holdout leakage ($Corpus \cap Holdouts = \emptyset$).
    - **Escalation Triage Router** ([`triage.py`](file:///D:/Programming/major-projects/Customer_support_agent/src/pipeline/triage.py)): Guardrails enforcing deterministic safety policies (battery thermal runaways, legal threats, credentials, billing disputes, missing context/screenshots) with structured, validated reason codes.

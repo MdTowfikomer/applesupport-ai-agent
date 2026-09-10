@@ -1,13 +1,19 @@
 """
 AppleSupport AI Agent (Task T8).
 Orchestrates the 4-stage pipeline:
-  intent -> retrieve k -> draft -> escalate with reason
+  intent -> retrieve k -> escalate with reason -> draft
+
+Execution Sequence Rationale:
+  Triage is intentionally executed before drafting so the response drafter
+  can dynamically adapt to the escalation decision (e.g., embedding official
+  DM transfer links for safety/credential/billing escalations or providing
+  grounded direct troubleshooting for auto-handled inquiries).
 
 Components:
 1. Intent: Canonical 10-class classifier adhering to Codebook rules.
 2. Retrieve k: BM25/TF-IDF historical resolution retrieval over 4,800 non-holdout threads.
-3. Draft: Context-grounded response generation via Gemini-2.5-flash with offline fallback.
-4. Escalate: Enterprise policy and safety guardrail triage with explicit reason codes.
+3. Escalate: Enterprise policy and safety guardrail triage with explicit reason codes.
+4. Draft: Context-grounded response generation via gemini-flash-latest with offline fallback.
 """
 
 from typing import Any, Dict, List, Optional

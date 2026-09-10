@@ -14,7 +14,7 @@ This report documents empirical baseline and agent performance established on `d
 
 ## 2. AppleSupport AI Agent (Task T8)
 
-- **Architecture**: 4-stage pipeline (Intent Classification -> BM25 Historical Resolution Retrieval -> Deterministic Escalation Triage -> Response Drafting).
+- **Architecture**: 4-stage pipeline (Intent Classification -> BM25 Historical Resolution Retrieval -> Deterministic Escalation Triage -> Response Drafting). Triage precedes drafting so responses dynamically adapt to escalation decisions (embedding official DM links for safety/credential/billing escalations or direct troubleshooting for auto-handled inquiries).
 - **Retrieval Corpus**: **4800** historical dialogue resolutions (zero holdout leakage, 200 holdouts isolated).
 - **Execution Mode**: `Offline Rule & Template Hybrid`.
 

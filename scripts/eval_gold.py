@@ -447,7 +447,7 @@ def run_evaluation(
         if "apple_support_agent" in results_payload:
             ag = results_payload["apple_support_agent"]
             f.write("\n## 2. AppleSupport AI Agent (Task T8)\n\n")
-            f.write(f"- **Architecture**: 4-stage pipeline (Intent Classification -> BM25 Historical Resolution Retrieval -> Deterministic Escalation Triage -> Response Drafting).\n")
+            f.write(f"- **Architecture**: 4-stage pipeline (Intent Classification -> BM25 Historical Resolution Retrieval -> Deterministic Escalation Triage -> Response Drafting). Triage precedes drafting so responses dynamically adapt to escalation decisions (embedding official DM links for safety/credential/billing escalations or direct troubleshooting for auto-handled inquiries).\n")
             f.write(f"- **Retrieval Corpus**: **{ag['retrieval_corpus_size']}** historical dialogue resolutions (zero holdout leakage, {ag['holdout_ids_excluded']} holdouts isolated).\n")
             f.write(f"- **Execution Mode**: `{'Gemini LLM (' + ag['pipeline_model'] + ')' if ag['use_llm'] else 'Offline Rule & Template Hybrid'}`.\n\n")
             f.write("### Intent Classification Breakdown\n\n")
