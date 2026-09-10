@@ -242,7 +242,7 @@ The agent achieves an overall **Intent Accuracy of 55.00%**, but its **Macro-F1 
 Macro-F1 computes the unweighted arithmetic mean of F1 across all 10 intent classes, assigning an identical 10% weight to every category regardless of real-world volume:
 - High-volume, business-critical categories perform with exceptional precision:
   - `battery_power_issue` (27 gold samples): **98.1% F1** (100% Precision, 96.3% Recall).
-  - `account_access_security` (10 gold samples): **72.7% F1** (80.0% Precision, 66.7% Recall).
+  - `account_access_security` (20 gold samples): **73.2% F1** (71.4% Precision, 75.0% Recall).
 - Long-tail, ill-defined categories collapse under sparse data:
   - `vague_complaint_unclear` (only 4 gold samples): **7.4% F1** (4.2% Precision, 25.0% Recall).
 - Because `vague_complaint_unclear` (4 samples) carries the exact same mathematical weight as `battery_power_issue` (27 samples), this single long-tail category depresses the headline Macro-F1 by over **4.2 percentage points**. Weighted-F1 (57.75%) more accurately reflects the agent's real-world operational throughput.
