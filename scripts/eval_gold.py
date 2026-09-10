@@ -32,10 +32,11 @@ from src.evaluation.metrics import (
     compute_binary_escalation_metrics,
     compute_reply_lexical_metrics,
     format_multiclass_report,
-    format_confusion_matrix_ascii,
     format_binary_report,
+    format_confusion_matrix_ascii,
     format_reply_metrics,
 )
+from src.evaluation.error_analyzer import dump_errors_and_summarize
 from src.evaluation.baselines import (
     MajorityIntentBaseline,
     AlwaysEscalateBaseline,
@@ -90,7 +91,7 @@ def run_evaluation(
     use_llm: bool = False
 ) -> Dict[str, Any]:
     print("=" * 80)
-    print(" TASK T5 / T6 / T7 / T8: GOLDEN EVALUATION HARNESS & BENCHMARKS")
+    print(" TASK T5 / T6 / T7 / T8 / T10: GOLDEN EVALUATION HARNESS, BASELINES & ERROR AUDIT")
     print("=" * 80)
     print(f"[*] Target Gold Dataset : {gold_path.resolve()}")
     print(f"[*] Holdout IDs File    : {holdout_path.resolve()}")
@@ -117,7 +118,7 @@ def run_evaluation(
 
     results_payload: Dict[str, Any] = {
         "metadata": {
-            "task": "T5_T6_T7_T8_evaluation_harness_and_baselines",
+            "task": "T5_T6_T7_T8_T10_evaluation_harness_baselines_and_error_audit",
             "gold_file": str(gold_path),
             "num_samples": len(gold_records),
             "holdout_isolated": True,
@@ -403,16 +404,33 @@ def run_evaluation(
         results_payload["always_escalate_baseline"] = always_esc_metrics
 
     # 5. Summary & Report Serialization
-    print("\n[4/4] Serializing Final Benchmark Reports (Zero Mutation to Gold JSONL)...")
+    print("\n[4/4] Serializing Final Benchmark Reports & Error Dump (Zero Mutation to Gold JSONL)...")
     output_dir.mkdir(parents=True, exist_ok=True)
     report_json_path = output_dir / "baseline_eval_results.json"
     report_md_path = output_dir / "baseline_eval_summary.md"
+
+    # Execute Error Dump and Failure Mode Analysis if agent predictions exist
+    t8_preds_file = output_dir / "eval_results_agent.jsonl"
+    if "apple_support_agent" in results_payload and t8_preds_file.exists():
+        err_res = dump_errors_and_summarize(
+            predictions_path=t8_preds_file,
+            output_dir=output_dir,
+        )
+        print(f"  [+] Error Dump JSONL saved to      : {err_res['dump_path'].resolve()}")
+        print(f"  [+] Error Analysis Report saved to : {err_res['summary_path'].resolve()}")
+        results_payload["error_analysis"] = {
+            "total_errors": err_res["total_errors"],
+            "intent_error_count": err_res["intent_error_count"],
+            "escalation_error_count": err_res["escalation_error_count"],
+            "error_dump_file": str(err_res["dump_path"]),
+            "error_summary_file": str(err_res["summary_path"]),
+        }
 
     with open(report_json_path, "w", encoding="utf-8") as f:
         json.dump(results_payload, f, indent=2, ensure_ascii=False)
 
     with open(report_md_path, "w", encoding="utf-8") as f:
-        f.write("# AppleSupport Baseline Evaluation Summary (Tasks T5, T6, T7 & T8)\n\n")
+        f.write("# AppleSupport Baseline Evaluation Summary (Tasks T5, T6, T7, T8 & T10)\n\n")
         f.write("## 1. Executive Summary & Benchmark Floor\n\n")
         f.write("This report documents empirical baseline and agent performance established on `data/gold/gold_eval_200.jsonl`.\n\n")
         

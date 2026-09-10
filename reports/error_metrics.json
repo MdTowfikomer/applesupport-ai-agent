@@ -1,0 +1,69 @@
+{
+  "total_samples": 200,
+  "total_errors": 142,
+  "intent_error_count": 90,
+  "intent_error_rate": 0.45,
+  "escalation_error_count": 81,
+  "escalation_error_rate": 0.405,
+  "escalation_false_positives": 14,
+  "escalation_false_negatives": 67,
+  "top_confusion_pairs": [
+    {
+      "gold_intent": "performance_crash_freeze",
+      "pred_intent": "software_update_glitch",
+      "count": 11
+    },
+    {
+      "gold_intent": "other",
+      "pred_intent": "vague_complaint_unclear",
+      "count": 9
+    },
+    {
+      "gold_intent": "other",
+      "pred_intent": "software_update_glitch",
+      "count": 7
+    },
+    {
+      "gold_intent": "apps_feature_howto",
+      "pred_intent": "hardware_physical_accessory",
+      "count": 6
+    },
+    {
+      "gold_intent": "apps_feature_howto",
+      "pred_intent": "other",
+      "count": 6
+    },
+    {
+      "gold_intent": "software_update_glitch",
+      "pred_intent": "hardware_physical_accessory",
+      "count": 5
+    },
+    {
+      "gold_intent": "software_update_glitch",
+      "pred_intent": "connectivity_network_issue",
+      "count": 4
+    },
+    {
+      "gold_intent": "apps_feature_howto",
+      "pred_intent": "vague_complaint_unclear",
+      "count": 4
+    },
+    {
+      "gold_intent": "vague_complaint_unclear",
+      "pred_intent": "other",
+      "count": 3
+    },
+    {
+      "gold_intent": "other",
+      "pred_intent": "connectivity_network_issue",
+      "count": 3
+    }
+  ],
+  "failure_mode_distribution": {
+    "MODE_2_CHANNEL_TRANSITION_UNDER_ESCALATION": 58,
+    "MODE_4_RETRIEVAL_LEXICAL_DIVERGENCE": 56,
+    "MODE_3_HOWTO_VS_OTHER_SMEARING": 13,
+    "MODE_1_UPDATE_VS_PERFORMANCE": 12,
+    "MODE_5_MULTILINGUAL_OR_MEDIA_CONTEXT": 3
+  }
+}

@@ -147,8 +147,45 @@ The judge was calibrated against **25 human-annotated customer resolutions** spa
 - **100% Critical Safety Protection**: Perfect precision/recall in detecting safety, security, and privacy violations (e.g. credential harvesting or hazardous battery advice).
 - Detailed rubric anchors and scoring examples are documented in [`docs/judge_rubric.md`](docs/judge_rubric.md). Machine-readable outputs and Markdown reports are saved in [`reports/judge_agreement_summary.md`](reports/judge_agreement_summary.md) and [`reports/judge_agreement_results.json`](reports/judge_agreement_results.json).
 
+### 6. Systematic Error Analysis & Failure Taxonomy Dump (Task T10)
+
+Task T10 performs an automated audit of all prediction errors across the 200 holdout gold evaluation items, categorizing errors into structured failure modes:
+
+```bash
+# 1. Run systematic error analysis and dump machine-readable error records:
+python -m scripts.dump_errors
+
+# 2. Re-run complete baseline evaluation and error dump end-to-end:
+python -m scripts.eval_gold --baseline all
+```
+
+#### Aggregate Error Breakdown (`eval_results_agent.jsonl`, 200 items)
+
+| Metric | Count / Proportion | Contact Center Impact |
+|:---|:---:|:---|
+| **Total Error Records Dumped** | `142 / 200` | Serialized with root-cause tags to [`reports/error_dump_agent.jsonl`](reports/error_dump_agent.jsonl) |
+| **Intent Misclassifications** | `90 / 200 (45.0%)` | 110/200 correct (55.0% accuracy, 53.57% macro-F1) |
+| **Escalation Triage Errors** | `81 / 200 (40.5%)` | 119/200 correct (59.5% accuracy, 72.0% precision) |
+| &nbsp;&nbsp;↳ *False Positives (Over-escalate)* | `14 cases` | Unnecessary DM transfers; easily handled via public self-service |
+| &nbsp;&nbsp;↳ *False Negatives (Under-escalate)* | **67 cases** | Human agent used DM for private intake; bot attempted routine self-help |
+
+#### Top 5 Canonical Failure Modes
+
+1. **Mode 1: Ambiguous Symptom vs. Glitch Attribution**: Confusion between `software_update_glitch` and `performance_crash_freeze` when customers report phone freezes occurring immediately after updating to iOS 11.
+2. **Mode 2: Under-Escalation on Channel Transitions (False Negatives)**: Human `@AppleSupport` agents frequently escalated to DM (`channel_transition`) for benign technical issues simply to collect device serial numbers, whereas the agent's safety rules require explicit risk or credentials before escalating.
+3. **Mode 3: Intent Boundary Smearing on How-To vs. Other**: Edge-case app feature inquiries (`apps_feature_howto`) getting swallowed into `other` due to sparse technical keywords.
+4. **Mode 4: Lexical Retrieval Generalization**: Low BM25 overlap against the 4.8k historical corpus results in generic responses (`"What seems to be the problem?"`), lowering ROUGE/BLEU scores against customized gold replies.
+5. **Mode 5: Multilingual & Media Context**: Inquiries in foreign languages (French, Spanish, Portuguese) or tweets heavily reliant on screenshot images without explanatory text.
+
+> [!IMPORTANT]
+> **What Is Misleading About the Headline Numbers?**:
+> - **The Escalation F1 Paradox**: The Trivial Baseline achieves an Escalation F1 of **67.99%** vs. the Agent's **47.06%**. This is deceptive: the trivial baseline blindly escalates 100% of all tweets (100% recall, 51.5% precision), flooding support staff with 97 false alarms. The Agent trades recall for high precision (**72.00%**), successfully deflecting **85.6%** of routine self-service issues.
+> - **Class Imbalance in Macro-F1**: High-volume intents like `battery_power_issue` achieve **98.1% F1**, whereas long-tail intents like `vague_complaint_unclear` (only 4 gold samples) achieve **7.4% F1**, mathematically dragging down the unweighted macro-F1 to 53.57% despite a Weighted-F1 of **57.75%**.
+> - Full failure mode case studies and error logs are documented in [`reports/error_analysis_summary.md`](reports/error_analysis_summary.md) and [`reports/error_dump_agent.jsonl`](reports/error_dump_agent.jsonl).
+
 > [!NOTE]
 > All predictions are serialized separately to `reports/eval_results_agent.jsonl`, `reports/eval_results_simple.jsonl`, and `reports/eval_results_trivial.jsonl` (200 records each), and benchmark metrics to `reports/baseline_eval_results.json` and `reports/baseline_eval_summary.md`. The gold dataset `data/gold/gold_eval_200.jsonl` remains 100% untouched and immutable. All 200 holdout IDs in `data/gold/index_holdout_ids.txt` remain strictly excluded from any retrieval index.
+
 
 
 ---

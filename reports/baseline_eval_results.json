@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "task": "T5_T6_T7_T8_evaluation_harness_and_baselines",
+    "task": "T5_T6_T7_T8_T10_evaluation_harness_baselines_and_error_audit",
     "gold_file": "data\\gold\\gold_eval_200.jsonl",
     "num_samples": 200,
     "holdout_isolated": true,
@@ -431,5 +431,12 @@
       "actual_false_pred_false (TN)": 0,
       "actual_true_pred_false (FN)": 0
     }
+  },
+  "error_analysis": {
+    "total_errors": 142,
+    "intent_error_count": 90,
+    "escalation_error_count": 81,
+    "error_dump_file": "reports\\error_dump_agent.jsonl",
+    "error_summary_file": "reports\\error_analysis_summary.md"
   }
 }
