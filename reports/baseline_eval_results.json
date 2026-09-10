@@ -1,10 +1,11 @@
 {
   "metadata": {
-    "task": "T5_T6_evaluation_harness_and_baselines",
+    "task": "T5_T6_T7_T8_evaluation_harness_and_baselines",
     "gold_file": "data\\gold\\gold_eval_200.jsonl",
     "num_samples": 200,
     "holdout_isolated": true,
-    "baseline_evaluated": "all"
+    "baseline_evaluated": "all",
+    "use_llm": false
   },
   "trivial_baseline_agent": {
     "model_type": "TrivialBaselineAgent",
@@ -267,6 +268,140 @@
       "bleu_1": 0.2413,
       "mean_hyp_char_length": 132.4,
       "mean_hyp_token_length": 25.3,
+      "mean_ref_char_length": 140.3,
+      "mean_ref_token_length": 26.9,
+      "num_evaluated_replies": 200
+    }
+  },
+  "apple_support_agent": {
+    "model_type": "AppleSupportAgent",
+    "use_llm": false,
+    "pipeline_model": "offline_rule_tfidf",
+    "retrieval_corpus_size": 4800,
+    "holdout_ids_excluded": 200,
+    "intent_metrics": {
+      "accuracy": 0.55,
+      "macro_f1": 0.5357,
+      "weighted_f1": 0.5775,
+      "per_class": {
+        "battery_power_issue": {
+          "precision": 1.0,
+          "recall": 0.963,
+          "f1": 0.9811,
+          "support": 27,
+          "tp": 26,
+          "fp": 0,
+          "fn": 1
+        },
+        "performance_crash_freeze": {
+          "precision": 1.0,
+          "recall": 0.5,
+          "f1": 0.6667,
+          "support": 30,
+          "tp": 15,
+          "fp": 0,
+          "fn": 15
+        },
+        "software_update_glitch": {
+          "precision": 0.3235,
+          "recall": 0.44,
+          "f1": 0.3729,
+          "support": 25,
+          "tp": 11,
+          "fp": 23,
+          "fn": 14
+        },
+        "connectivity_network_issue": {
+          "precision": 0.5294,
+          "recall": 0.8182,
+          "f1": 0.6429,
+          "support": 11,
+          "tp": 9,
+          "fp": 8,
+          "fn": 2
+        },
+        "hardware_physical_accessory": {
+          "precision": 0.3333,
+          "recall": 0.5833,
+          "f1": 0.4242,
+          "support": 12,
+          "tp": 7,
+          "fp": 14,
+          "fn": 5
+        },
+        "account_access_security": {
+          "precision": 0.7143,
+          "recall": 0.75,
+          "f1": 0.7317,
+          "support": 20,
+          "tp": 15,
+          "fp": 6,
+          "fn": 5
+        },
+        "billing_purchases_subscriptions": {
+          "precision": 0.6667,
+          "recall": 0.5,
+          "f1": 0.5714,
+          "support": 8,
+          "tp": 4,
+          "fp": 2,
+          "fn": 4
+        },
+        "apps_feature_howto": {
+          "precision": 0.8,
+          "recall": 0.3871,
+          "f1": 0.5217,
+          "support": 31,
+          "tp": 12,
+          "fp": 3,
+          "fn": 19
+        },
+        "vague_complaint_unclear": {
+          "precision": 0.0435,
+          "recall": 0.25,
+          "f1": 0.0741,
+          "support": 4,
+          "tp": 1,
+          "fp": 22,
+          "fn": 3
+        },
+        "other": {
+          "precision": 0.4545,
+          "recall": 0.3125,
+          "f1": 0.3704,
+          "support": 32,
+          "tp": 10,
+          "fp": 12,
+          "fn": 22
+        }
+      }
+    },
+    "escalation_metrics": {
+      "accuracy": 0.595,
+      "precision": 0.72,
+      "recall": 0.3495,
+      "f1": 0.4706,
+      "tp": 36,
+      "fp": 14,
+      "tn": 83,
+      "fn": 67,
+      "positive_support": 103,
+      "negative_support": 97,
+      "total_samples": 200,
+      "confusion_matrix": {
+        "actual_true_pred_true (TP)": 36,
+        "actual_false_pred_true (FP)": 14,
+        "actual_false_pred_false (TN)": 83,
+        "actual_true_pred_false (FN)": 67
+      }
+    },
+    "reply_metrics": {
+      "rouge_1_f1": 0.2827,
+      "rouge_2_f1": 0.1176,
+      "rouge_l_f1": 0.2381,
+      "bleu_1": 0.235,
+      "mean_hyp_char_length": 124.7,
+      "mean_hyp_token_length": 24.3,
       "mean_ref_char_length": 140.3,
       "mean_ref_token_length": 26.9,
       "num_evaluated_replies": 200

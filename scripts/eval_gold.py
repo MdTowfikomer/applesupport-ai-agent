@@ -42,11 +42,12 @@ from src.evaluation.baselines import (
     TrivialBaselineAgent,
 )
 from src.baselines.simple import SimpleBaselineAgent
+from src.pipeline.agent import AppleSupportAgent
 
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Offline Evaluation Harness for AppleSupport Golden Set (Tasks T5, T6, T7)"
+        description="Offline Evaluation Harness for AppleSupport Golden Set (Tasks T5, T6, T7, T8)"
     )
     parser.add_argument(
         "--gold-path",
@@ -70,8 +71,13 @@ def parse_args():
         "--baseline",
         type=str,
         default="all",
-        choices=["all", "simple", "trivial", "majority_intent", "always_escalate"],
-        help="Which baseline to evaluate (default: all)"
+        choices=["all", "agent", "simple", "trivial", "majority_intent", "always_escalate"],
+        help="Which baseline or agent to evaluate (default: all)"
+    )
+    parser.add_argument(
+        "--use-llm",
+        action="store_true",
+        help="Enable Gemini LLM generation for T8 Agent (default: False for fast offline eval)"
     )
     return parser.parse_args()
 
@@ -80,10 +86,11 @@ def run_evaluation(
     gold_path: Path,
     holdout_path: Path,
     output_dir: Path,
-    baseline: str = "all"
+    baseline: str = "all",
+    use_llm: bool = False
 ) -> Dict[str, Any]:
     print("=" * 80)
-    print(" TASK T5 / T6: GOLDEN EVALUATION HARNESS & BASELINE BENCHMARKS")
+    print(" TASK T5 / T6 / T7 / T8: GOLDEN EVALUATION HARNESS & BENCHMARKS")
     print("=" * 80)
     print(f"[*] Target Gold Dataset : {gold_path.resolve()}")
     print(f"[*] Holdout IDs File    : {holdout_path.resolve()}")
@@ -110,11 +117,12 @@ def run_evaluation(
 
     results_payload: Dict[str, Any] = {
         "metadata": {
-            "task": "T5_T6_evaluation_harness_and_baselines",
+            "task": "T5_T6_T7_T8_evaluation_harness_and_baselines",
             "gold_file": str(gold_path),
             "num_samples": len(gold_records),
             "holdout_isolated": True,
-            "baseline_evaluated": baseline
+            "baseline_evaluated": baseline,
+            "use_llm": use_llm,
         }
     }
 
@@ -278,6 +286,93 @@ def run_evaluation(
             "reply_metrics": simple_reply_metrics
         }
 
+    # 3b. AppleSupport AI Agent (Task T8)
+    if baseline in ["all", "agent"]:
+        print("[2c/4] Evaluating AppleSupport AI Agent (Task T8)...")
+        print(f"  (4-Stage Pipeline: Intent -> Retrieve k -> Escalate Triage -> Draft Reply | use_llm={use_llm})")
+        t8_agent = AppleSupportAgent(
+            subsample_path="data/subsample/applesupport_threads_5k.jsonl",
+            holdout_ids_path=str(holdout_path),
+            use_llm=use_llm,
+        )
+        # Verify strict holdout isolation
+        assert len(t8_agent.retriever.holdout_ids) == 200, f"Expected 200 holdouts, got {len(t8_agent.retriever.holdout_ids)}"
+        assert len(t8_agent.retriever.corpus) == 4800, f"Expected 4800 non-holdouts, got {len(t8_agent.retriever.corpus)}"
+        assert not any(r["thread_id"] in t8_agent.retriever.holdout_ids for r in t8_agent.retriever.corpus), "Data leakage detected!"
+
+        t8_preds = t8_agent.predict(gold_records)
+        y_pred_t8_intent = [p["predicted_intent"] for p in t8_preds]
+        y_pred_t8_escalate = [p["predicted_escalate"] for p in t8_preds]
+        hyp_t8_replies = [p["predicted_reply"] for p in t8_preds]
+
+        # Compute intent metrics
+        t8_intent_metrics = compute_multiclass_metrics(
+            y_true=y_true_intent,
+            y_pred=y_pred_t8_intent,
+            labels=ALLOWED_INTENTS
+        )
+
+        # Compute escalation metrics
+        t8_escalate_metrics = compute_binary_escalation_metrics(
+            y_true=y_true_escalate,
+            y_pred=y_pred_t8_escalate
+        )
+
+        # Compute reply lexical metrics
+        t8_reply_metrics = compute_reply_lexical_metrics(
+            references=gold_replies,
+            hypotheses=hyp_t8_replies
+        )
+
+        print("\n--- [T8] AppleSupport Agent: Intent Classification ---")
+        print(format_multiclass_report(t8_intent_metrics))
+        print("\n--- [T8] AppleSupport Agent: Intent Confusion Matrix ---")
+        print(format_confusion_matrix_ascii(t8_intent_metrics["confusion_matrix"], ALLOWED_INTENTS))
+        print("\n--- [T8] AppleSupport Agent: Escalation Triage ---")
+        print(format_binary_report(t8_escalate_metrics))
+        print("\n--- [T8] AppleSupport Agent: Reply Generation Lexical Overlap ---")
+        print(format_reply_metrics(t8_reply_metrics))
+        print()
+
+        # Save predictions JSONL
+        output_dir.mkdir(parents=True, exist_ok=True)
+        t8_jsonl_path = output_dir / "eval_results_agent.jsonl"
+        with open(t8_jsonl_path, "w", encoding="utf-8") as f:
+            for g, p in zip(gold_records, t8_preds):
+                item = {
+                    "thread_id": g["thread_id"],
+                    "customer_text": g["customer_text"],
+                    "gold_intent": g["intent"],
+                    "predicted_intent": p["predicted_intent"],
+                    "gold_escalate": g["escalate"],
+                    "predicted_escalate": p["predicted_escalate"],
+                    "gold_escalate_reason": g.get("escalate_reason"),
+                    "predicted_escalate_reason": p.get("predicted_escalate_reason"),
+                    "gold_reply": g["brand_text"],
+                    "predicted_reply": p["predicted_reply"],
+                    "retrieved_thread_id": p.get("retrieved_thread_id"),
+                    "retrieval_score": p.get("retrieval_score"),
+                    "pipeline_model": p.get("pipeline_model"),
+                }
+                f.write(json.dumps(item, ensure_ascii=False) + "\n")
+        print(f"  [+] Saved per-sample predictions to: {t8_jsonl_path.resolve()}")
+
+        results_payload["apple_support_agent"] = {
+            "model_type": "AppleSupportAgent",
+            "use_llm": use_llm,
+            "pipeline_model": t8_agent.model_name if use_llm else "offline_rule_tfidf",
+            "retrieval_corpus_size": len(t8_agent.retriever.corpus),
+            "holdout_ids_excluded": len(t8_agent.retriever.holdout_ids),
+            "intent_metrics": {
+                "accuracy": t8_intent_metrics["accuracy"],
+                "macro_f1": t8_intent_metrics["macro_f1"],
+                "weighted_f1": t8_intent_metrics["weighted_f1"],
+                "per_class": t8_intent_metrics["per_class"]
+            },
+            "escalation_metrics": t8_escalate_metrics,
+            "reply_metrics": t8_reply_metrics
+        }
+
     # 4. Individual Dummy Baselines (T5)
     if baseline in ["all", "majority_intent"]:
         print("[3/4] Evaluating Component Baseline: Majority-Intent Classifier...")
@@ -317,24 +412,31 @@ def run_evaluation(
         json.dump(results_payload, f, indent=2, ensure_ascii=False)
 
     with open(report_md_path, "w", encoding="utf-8") as f:
-        f.write("# AppleSupport Baseline Evaluation Summary (Tasks T5, T6 & T7)\n\n")
+        f.write("# AppleSupport Baseline Evaluation Summary (Tasks T5, T6, T7 & T8)\n\n")
         f.write("## 1. Executive Summary & Benchmark Floor\n\n")
-        f.write("This report documents empirical baseline performance established on `data/gold/gold_eval_200.jsonl`.\n\n")
+        f.write("This report documents empirical baseline and agent performance established on `data/gold/gold_eval_200.jsonl`.\n\n")
         
-        f.write("| Baseline Pipeline | Intent Accuracy | Intent Macro-F1 | Escalation Accuracy | Escalation Precision | Escalation Recall | Escalation F1 | ROUGE-1 F1 | ROUGE-L F1 | BLEU-1 |\n")
+        f.write("| Pipeline / Baseline | Intent Accuracy | Intent Macro-F1 | Escalation Accuracy | Escalation Precision | Escalation Recall | Escalation F1 | ROUGE-1 F1 | ROUGE-L F1 | BLEU-1 |\n")
         f.write("|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|\n")
+        if "apple_support_agent" in results_payload:
+            ag = results_payload["apple_support_agent"]
+            im = ag["intent_metrics"]
+            em = ag["escalation_metrics"]
+            rm = ag["reply_metrics"]
+            mode_lbl = "Online Gemini" if ag.get("use_llm") else "Offline Hybrid"
+            f.write(f"| **AppleSupport AI Agent (T8 - {mode_lbl})** | **{im['accuracy']*100:.2f}%** | **{im['macro_f1']*100:.2f}%** | **{em['accuracy']*100:.2f}%** | **{em['precision']*100:.2f}%** | **{em['recall']*100:.2f}%** | **{em['f1']*100:.2f}%** | **{rm['rouge_1_f1']*100:.2f}%** | **{rm['rouge_l_f1']*100:.2f}%** | **{rm['bleu_1']*100:.2f}%** |\n")
         if "simple_baseline_agent" in results_payload:
             sb = results_payload["simple_baseline_agent"]
             im = sb["intent_metrics"]
             em = sb["escalation_metrics"]
             rm = sb["reply_metrics"]
-            f.write(f"| **Simple Baseline Agent (T7)** | **{im['accuracy']*100:.2f}%** | **{im['macro_f1']*100:.2f}%** | **{em['accuracy']*100:.2f}%** | **{em['precision']*100:.2f}%** | **{em['recall']*100:.2f}%** | **{em['f1']*100:.2f}%** | **{rm['rouge_1_f1']*100:.2f}%** | **{rm['rouge_l_f1']*100:.2f}%** | **{rm['bleu_1']*100:.2f}%** |\n")
+            f.write(f"| Simple Baseline Agent (T7) | {im['accuracy']*100:.2f}% | {im['macro_f1']*100:.2f}% | {em['accuracy']*100:.2f}% | {em['precision']*100:.2f}% | {em['recall']*100:.2f}% | {em['f1']*100:.2f}% | {rm['rouge_1_f1']*100:.2f}% | {rm['rouge_l_f1']*100:.2f}% | {rm['bleu_1']*100:.2f}% |\n")
         if "trivial_baseline_agent" in results_payload:
             tb = results_payload["trivial_baseline_agent"]
             im = tb["intent_metrics"]
             em = tb["escalation_metrics"]
             rm = tb["reply_metrics"]
-            f.write(f"| **Trivial Baseline Agent (T6)** | {im['accuracy']*100:.2f}% | {im['macro_f1']*100:.2f}% | {em['accuracy']*100:.2f}% | {em['precision']*100:.2f}% | {em['recall']*100:.2f}% | {em['f1']*100:.2f}% | {rm['rouge_1_f1']*100:.2f}% | {rm['rouge_l_f1']*100:.2f}% | {rm['bleu_1']*100:.2f}% |\n")
+            f.write(f"| Trivial Baseline Agent (T6) | {im['accuracy']*100:.2f}% | {im['macro_f1']*100:.2f}% | {em['accuracy']*100:.2f}% | {em['precision']*100:.2f}% | {em['recall']*100:.2f}% | {em['f1']*100:.2f}% | {rm['rouge_1_f1']*100:.2f}% | {rm['rouge_l_f1']*100:.2f}% | {rm['bleu_1']*100:.2f}% |\n")
         if "majority_intent_baseline" in results_payload:
             mi = results_payload["majority_intent_baseline"]
             f.write(f"| *Majority-Intent Only (T5)* | {mi['accuracy']*100:.2f}% | {mi['macro_f1']*100:.2f}% | N/A | N/A | N/A | N/A | N/A | N/A | N/A |\n")
@@ -342,7 +444,24 @@ def run_evaluation(
             ae = results_payload["always_escalate_baseline"]
             f.write(f"| *Always-Escalate Only (T5)* | N/A | N/A | {ae['accuracy']*100:.2f}% | {ae['precision']*100:.2f}% | {ae['recall']*100:.2f}% | {ae['f1']*100:.2f}% | N/A | N/A | N/A |\n")
         
-        f.write("\n## 2. Simple Baseline Agent (Task T7)\n\n")
+        if "apple_support_agent" in results_payload:
+            ag = results_payload["apple_support_agent"]
+            f.write("\n## 2. AppleSupport AI Agent (Task T8)\n\n")
+            f.write(f"- **Architecture**: 4-stage pipeline (Intent Classification -> BM25 Historical Resolution Retrieval -> Deterministic Escalation Triage -> Response Drafting).\n")
+            f.write(f"- **Retrieval Corpus**: **{ag['retrieval_corpus_size']}** historical dialogue resolutions (zero holdout leakage, {ag['holdout_ids_excluded']} holdouts isolated).\n")
+            f.write(f"- **Execution Mode**: `{'Gemini LLM (' + ag['pipeline_model'] + ')' if ag['use_llm'] else 'Offline Rule & Template Hybrid'}`.\n\n")
+            f.write("### Intent Classification Breakdown\n\n")
+            f.write(format_multiclass_report(t8_intent_metrics))
+            f.write("\n\n```text\n")
+            f.write(format_confusion_matrix_ascii(t8_intent_metrics["confusion_matrix"], ALLOWED_INTENTS))
+            f.write("\n```\n\n")
+            f.write("### Escalation Triage Breakdown\n\n")
+            f.write(format_binary_report(t8_escalate_metrics))
+            f.write("\n\n### Reply Generation Lexical Overlap\n\n")
+            f.write(format_reply_metrics(t8_reply_metrics))
+            f.write("\n\n")
+
+        f.write("## 3. Simple Baseline Agent (Task T7)\n\n")
         if "simple_baseline_agent" in results_payload:
             sb = results_payload["simple_baseline_agent"]
             f.write(f"- **Intent Classifier**: Keyword & regex pattern matcher adhering to codebook hierarchy (Rule 3: account > billing > hardware > symptoms > vague).\n")
@@ -359,7 +478,7 @@ def run_evaluation(
             f.write(format_reply_metrics(simple_reply_metrics))
             f.write("\n\n")
 
-        f.write("## 3. Trivial Baseline Agent Configuration (Task T6)\n\n")
+        f.write("## 4. Trivial Baseline Agent Configuration (Task T6)\n\n")
         if "trivial_baseline_agent" in results_payload:
             tb = results_payload["trivial_baseline_agent"]
             f.write(f"- **Intent Decision**: Fixed majority class (`{tb['majority_intent']}`)\n")
@@ -390,7 +509,7 @@ def main():
     gold_path = Path(args.gold_path)
     holdout_path = Path(args.holdout_path)
     output_dir = Path(args.output_dir)
-    run_evaluation(gold_path, holdout_path, output_dir, baseline=args.baseline)
+    run_evaluation(gold_path, holdout_path, output_dir, baseline=args.baseline, use_llm=args.use_llm)
 
 
 if __name__ == "__main__":
