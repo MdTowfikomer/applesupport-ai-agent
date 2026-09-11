@@ -15,8 +15,8 @@ Ensure you have Python 3.10+ and [`uv`](https://github.com/astral-sh/uv) install
 
 ```bash
 # Clone the repository (if not already local)
-git clone <repo-url>
-cd Customer_support_agent
+git clone https://github.com/MdTowfikomer/applesupport-ai-agent.git
+cd applesupport-ai-agent
 
 # Create and activate virtual environment with uv
 uv venv
