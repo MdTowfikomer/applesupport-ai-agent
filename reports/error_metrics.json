@@ -1,12 +1,12 @@
 {
   "total_samples": 200,
-  "total_errors": 142,
+  "total_errors": 139,
   "intent_error_count": 90,
   "intent_error_rate": 0.45,
   "escalation_error_count": 81,
   "escalation_error_rate": 0.405,
-  "escalation_false_positives": 14,
-  "escalation_false_negatives": 67,
+  "escalation_false_positives": 22,
+  "escalation_false_negatives": 59,
   "top_confusion_pairs": [
     {
       "gold_intent": "performance_crash_freeze",
@@ -60,10 +60,10 @@
     }
   ],
   "failure_mode_distribution": {
-    "MODE_2_CHANNEL_TRANSITION_UNDER_ESCALATION": 58,
-    "MODE_4_RETRIEVAL_LEXICAL_DIVERGENCE": 56,
+    "MODE_2_CHANNEL_TRANSITION_UNDER_ESCALATION": 53,
+    "MODE_4_RETRIEVAL_LEXICAL_DIVERGENCE": 57,
     "MODE_3_HOWTO_VS_OTHER_SMEARING": 13,
-    "MODE_1_UPDATE_VS_PERFORMANCE": 12,
+    "MODE_1_UPDATE_VS_PERFORMANCE": 13,
     "MODE_5_MULTILINGUAL_OR_MEDIA_CONTEXT": 3
   }
 }

@@ -21,6 +21,20 @@ from src.baselines.simple import (
 )
 
 
+FRUSTRATION_INTENTS = {
+    "performance_crash_freeze",
+    "software_update_glitch",
+    "connectivity_network_issue",
+}
+
+PROFANITY_PATTERN = re.compile(
+    r"\b(fuck|fucking|fucked|shit|bullshit|damn|crap|ass|piss|pissed|hell)\b",
+    re.IGNORECASE,
+)
+EXCESSIVE_PUNCTUATION_PATTERN = re.compile(r"[!?]{3,}")
+ALL_CAPS_WORD_PATTERN = re.compile(r"\b[A-Z]{4,}\b")
+
+
 class EscalationRouter:
     """
     Enterprise Escalation Router implementing deterministic safety guardrails
@@ -78,5 +92,16 @@ class EscalationRouter:
             ):
                 return True, "channel_transition"
 
-        # 5. Default auto-handle: deterministic technical troubleshooting or clarifying intake
+        # 5. Secondary channel_transition signal for high-frustration technical complaints
+        if predicted_intent in FRUSTRATION_INTENTS and retrieved_context and len(retrieved_context) > 0:
+            top_score = retrieved_context[0].get("score", 0.0)
+            if top_score > 0.15:
+                has_profanity = bool(PROFANITY_PATTERN.search(customer_text))
+                has_excessive_punct = bool(EXCESSIVE_PUNCTUATION_PATTERN.search(customer_text))
+                has_all_caps = bool(ALL_CAPS_WORD_PATTERN.search(customer_text))
+
+                if has_profanity or has_excessive_punct or has_all_caps:
+                    return True, "channel_transition"
+
+        # 6. Default auto-handle: deterministic technical troubleshooting or clarifying intake
         return False, None
