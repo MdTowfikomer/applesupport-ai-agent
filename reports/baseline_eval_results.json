@@ -396,12 +396,12 @@
       }
     },
     "reply_metrics": {
-      "rouge_1_f1": 0.2914,
-      "rouge_2_f1": 0.1231,
-      "rouge_l_f1": 0.2466,
-      "bleu_1": 0.2474,
-      "mean_hyp_char_length": 123.7,
-      "mean_hyp_token_length": 24.1,
+      "rouge_1_f1": 0.2844,
+      "rouge_2_f1": 0.1168,
+      "rouge_l_f1": 0.2393,
+      "bleu_1": 0.2379,
+      "mean_hyp_char_length": 124.3,
+      "mean_hyp_token_length": 24.2,
       "mean_ref_char_length": 140.3,
       "mean_ref_token_length": 26.9,
       "num_evaluated_replies": 200
@@ -433,7 +433,7 @@
     }
   },
   "error_analysis": {
-    "total_errors": 139,
+    "total_errors": 141,
     "intent_error_count": 90,
     "escalation_error_count": 81,
     "error_dump_file": "reports\\error_dump_agent.jsonl",

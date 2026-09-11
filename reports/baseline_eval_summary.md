@@ -6,7 +6,7 @@ This report documents empirical baseline and agent performance established on `d
 
 | Pipeline / Baseline | Intent Accuracy | Intent Macro-F1 | Escalation Accuracy | Escalation Precision | Escalation Recall | Escalation F1 | ROUGE-1 F1 | ROUGE-L F1 | BLEU-1 |
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **AppleSupport AI Agent (T8 - Offline Hybrid)** | **55.00%** | **53.57%** | **59.50%** | **66.67%** | **42.72%** | **52.07%** | **29.14%** | **24.66%** | **24.74%** |
+| **AppleSupport AI Agent (T8 - Offline Hybrid)** | **55.00%** | **53.57%** | **59.50%** | **66.67%** | **42.72%** | **52.07%** | **28.44%** | **23.93%** | **23.79%** |
 | Simple Baseline Agent (T7) | 55.00% | 53.57% | 59.50% | 72.00% | 34.95% | 47.06% | 28.56% | 24.04% | 24.13% |
 | Trivial Baseline Agent (T6) | 16.00% | 2.76% | 51.50% | 51.50% | 100.00% | 67.99% | 33.98% | 27.40% | 29.29% |
 | *Majority-Intent Only (T5)* | 16.00% | 2.76% | N/A | N/A | N/A | N/A | N/A | N/A | N/A |
@@ -81,11 +81,11 @@ Total Predicted               26    15    34    17    21    21     6    15    23
 
 ### Reply Generation Lexical Overlap
 
-- **ROUGE-1 F1**: `29.14%`
-- **ROUGE-2 F1**: `12.31%`
-- **ROUGE-L F1**: `24.66%`
-- **BLEU-1**: `24.74%`
-- **Mean Reply Length**: `24.1 words` (123.7 chars) vs Gold: `26.9 words` (140.3 chars)
+- **ROUGE-1 F1**: `28.44%`
+- **ROUGE-2 F1**: `11.68%`
+- **ROUGE-L F1**: `23.93%`
+- **BLEU-1**: `23.79%`
+- **Mean Reply Length**: `24.2 words` (124.3 chars) vs Gold: `26.9 words` (140.3 chars)
 
 ## 3. Simple Baseline Agent (Task T7)
 

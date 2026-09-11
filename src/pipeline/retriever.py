@@ -27,7 +27,7 @@ class HistoricalResolutionIndex:
         self,
         subsample_path: str = "data/subsample/applesupport_threads_5k.jsonl",
         holdout_ids_path: str = "data/gold/index_holdout_ids.txt",
-        use_semantic: bool = True,
+        use_semantic: bool = False,
         embedding_model_name: str = "all-MiniLM-L6-v2",
         rrf_k: int = 60,
     ):

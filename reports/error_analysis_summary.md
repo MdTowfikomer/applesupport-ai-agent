@@ -8,7 +8,7 @@ This report documents a systematic audit of all prediction discrepancies across 
 | **Escalation Triage Errors** | **81 / 200 (40.5%)** | 119/200 correct (59.5% accuracy, 72.0% precision) |
 | &nbsp;&nbsp;↳ *False Positives (Over-escalate)* | `22` cases | Customer could be auto-handled; agent escalated to DM |
 | &nbsp;&nbsp;↳ *False Negatives (Under-escalate)* | **59 cases** | Human agent escalated to DM; bot attempted self-service |
-| **Total Distinct Error Records Dumped** | `139` | Serialized with root causes to `reports/error_dump_agent.jsonl` |
+| **Total Distinct Error Records Dumped** | `141` | Serialized with root causes to `reports/error_dump_agent.jsonl` |
 
 ## 2. Top Intent Classification Confusion Clusters
 
@@ -65,7 +65,7 @@ The 10-class intent taxonomy experiences confusion primarily along shared semant
   - **Customer Tweet**: *"Beyoncé’s posts make my phone freeze. Fix it @115858"*
   - **Gold Labels**: Intent=`performance_crash_freeze` | Escalate=`True` (channel_transition)
   - **Agent Predictions**: Intent=`performance_crash_freeze` | Escalate=`False` (None)
-  - **Predicted Reply**: *"That’s a concern that we’d like to look into with you. Which apps are you using when the iPhone becomes slow?"*
+  - **Predicted Reply**: *"We’re here to help. Please DM us the software version you’re using so we can better assist you. https://t.co/GDrqU22YpT"*
   - **Root Cause Hypothesis**: Human support agent chose to escalate to private DM for diagnostics, but rule triage evaluated inquiry as self-service auto-handle.
 
 - **Thread ID**: `twcs_apple_03463`
@@ -98,7 +98,7 @@ The 10-class intent taxonomy experiences confusion primarily along shared semant
 
 ---
 
-### Failure Mode: Retrieval Generalization & Generic Fallback Drafts (57 instances)
+### Failure Mode: Retrieval Generalization & Generic Fallback Drafts (59 instances)
 **Description**: Low BM25 lexical overlap between inquiry and historical corpus results in generic canned replies ('What seems to be the problem?') yielding low ROUGE/BLEU overlap against gold custom resolution.
 
 **Representative Gold Examples**:
@@ -114,7 +114,7 @@ The 10-class intent taxonomy experiences confusion primarily along shared semant
   - **Customer Tweet**: *"@AppleSupport ios11 update— don’t know how WiFi &amp; Bluetooth just randomly turn on after I’ve turned them off. It should go back on wen I say"*
   - **Gold Labels**: Intent=`software_update_glitch` | Escalate=`False` (None)
   - **Agent Predictions**: Intent=`connectivity_network_issue` | Escalate=`False` (None)
-  - **Predicted Reply**: *"We can help. Here's a great article to clarify more about Wi-Fi &amp; Bluetooth in the Control Center: https://t.co/vzVz37YMv0"*
+  - **Predicted Reply**: *"We'd love to help look into this and get you back in action. Can you send us a DM with some additional details? https://t.co/GDrqU22YpT"*
   - **Root Cause Hypothesis**: Lexical discrepancy or intent mismatch (gold=software_update_glitch vs pred=connectivity_network_issue, esc_gold=False vs esc_pred=False).
 
 ---
@@ -135,7 +135,7 @@ The 10-class intent taxonomy experiences confusion primarily along shared semant
   - **Customer Tweet**: *".@115858 wtf is this https://t.co/PvxdIJRCLF"*
   - **Gold Labels**: Intent=`vague_complaint_unclear` | Escalate=`True` (channel_transition)
   - **Agent Predictions**: Intent=`other` | Escalate=`False` (None)
-  - **Predicted Reply**: *"We can help out. Could you Direct Message us and let us know what iOS version that device is on? https://t.co/GDrqU22YpT"*
+  - **Predicted Reply**: *"We'd like to help you with that autocorrect issue, no worries. Let's start by having you tell us which iOS version you are running under Settings &gt; General &gt; About."*
   - **Root Cause Hypothesis**: Customer tweet is non-English or heavily dependent on an attached screenshot/media link.
 
 ---

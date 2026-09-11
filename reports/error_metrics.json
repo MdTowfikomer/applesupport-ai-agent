@@ -1,6 +1,6 @@
 {
   "total_samples": 200,
-  "total_errors": 139,
+  "total_errors": 141,
   "intent_error_count": 90,
   "intent_error_rate": 0.45,
   "escalation_error_count": 81,
@@ -61,7 +61,7 @@
   ],
   "failure_mode_distribution": {
     "MODE_2_CHANNEL_TRANSITION_UNDER_ESCALATION": 53,
-    "MODE_4_RETRIEVAL_LEXICAL_DIVERGENCE": 57,
+    "MODE_4_RETRIEVAL_LEXICAL_DIVERGENCE": 59,
     "MODE_3_HOWTO_VS_OTHER_SMEARING": 13,
     "MODE_1_UPDATE_VS_PERFORMANCE": 13,
     "MODE_5_MULTILINGUAL_OR_MEDIA_CONTEXT": 3
