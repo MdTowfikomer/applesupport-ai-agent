@@ -28,6 +28,10 @@ STYLE GUIDELINES (AppleSupport Tone & Voice):
    - If ESCALATE is FALSE:
      * If the issue has clear troubleshooting steps (e.g. restart, reset network settings, check battery usage in Settings): provide them directly.
      * If the issue is vague: ask a clarifying question about their device model and iOS version.
+6. Diagnostic Question Guardrail:
+   - Before asking for diagnostic details, check the customer's message.
+   - If they already mentioned their device model, iOS version, or symptom context, do NOT ask for it again.
+   - Instead, acknowledge what they provided and offer direct troubleshooting or a relevant follow-up.
 """
 
 
