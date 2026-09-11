@@ -25,6 +25,12 @@ from src.pipeline.triage import EscalationRouter
 from src.pipeline.drafter import ResponseDrafter
 
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
 class AppleSupportAgent:
     """
     Autonomous AI Customer Support Agent for @AppleSupport.
@@ -36,11 +42,11 @@ class AppleSupportAgent:
         holdout_ids_path: str = "data/gold/index_holdout_ids.txt",
         use_llm: bool = True,
         top_k: int = 3,
-        model_name: str = "gemini-flash-latest",
+        model_name: Optional[str] = None,
     ):
         self.use_llm = use_llm
         self.top_k = top_k
-        self.model_name = model_name
+        self.model_name = model_name or os.getenv("PIPELINE_MODEL", "gemini-2.5-flash")
 
         # 1. Initialize Retrieval Index (strictly non-holdout)
         self.retriever = HistoricalResolutionIndex(
@@ -49,9 +55,9 @@ class AppleSupportAgent:
         )
 
         # 2. Initialize Pipeline Modules
-        self.classifier = IntentClassifier(use_llm=use_llm, model_name=model_name)
+        self.classifier = IntentClassifier(use_llm=use_llm, model_name=self.model_name)
         self.router = EscalationRouter()
-        self.drafter = ResponseDrafter(use_llm=use_llm, model_name=model_name)
+        self.drafter = ResponseDrafter(use_llm=use_llm, model_name=self.model_name)
 
     def process(self, customer_text: str, thread_id: str = "") -> Dict[str, Any]:
         """

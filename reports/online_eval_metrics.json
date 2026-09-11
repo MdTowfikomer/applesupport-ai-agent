@@ -1,0 +1,138 @@
+{
+  "metadata": {
+    "task": "T8_T13_online_replay_evaluation",
+    "replay_file": "online_eval_results_200.json",
+    "gold_file": "data\\gold\\gold_eval_200.jsonl",
+    "num_samples": 200,
+    "zero_api_calls": true
+  },
+  "apple_support_agent_online": {
+    "intent_metrics": {
+      "accuracy": 0.61,
+      "macro_f1": 0.5864,
+      "weighted_f1": 0.6122,
+      "per_class": {
+        "battery_power_issue": {
+          "precision": 0.9167,
+          "recall": 0.8148,
+          "f1": 0.8627,
+          "support": 27,
+          "tp": 22,
+          "fp": 2,
+          "fn": 5
+        },
+        "performance_crash_freeze": {
+          "precision": 0.8276,
+          "recall": 0.8,
+          "f1": 0.8136,
+          "support": 30,
+          "tp": 24,
+          "fp": 5,
+          "fn": 6
+        },
+        "software_update_glitch": {
+          "precision": 0.5172,
+          "recall": 0.6,
+          "f1": 0.5556,
+          "support": 25,
+          "tp": 15,
+          "fp": 14,
+          "fn": 10
+        },
+        "connectivity_network_issue": {
+          "precision": 0.4737,
+          "recall": 0.8182,
+          "f1": 0.6,
+          "support": 11,
+          "tp": 9,
+          "fp": 10,
+          "fn": 2
+        },
+        "hardware_physical_accessory": {
+          "precision": 0.2857,
+          "recall": 0.3333,
+          "f1": 0.3077,
+          "support": 12,
+          "tp": 4,
+          "fp": 10,
+          "fn": 8
+        },
+        "account_access_security": {
+          "precision": 0.7727,
+          "recall": 0.85,
+          "f1": 0.8095,
+          "support": 20,
+          "tp": 17,
+          "fp": 5,
+          "fn": 3
+        },
+        "billing_purchases_subscriptions": {
+          "precision": 0.8333,
+          "recall": 0.625,
+          "f1": 0.7143,
+          "support": 8,
+          "tp": 5,
+          "fp": 1,
+          "fn": 3
+        },
+        "apps_feature_howto": {
+          "precision": 0.5217,
+          "recall": 0.3871,
+          "f1": 0.4444,
+          "support": 31,
+          "tp": 12,
+          "fp": 11,
+          "fn": 19
+        },
+        "vague_complaint_unclear": {
+          "precision": 0.2143,
+          "recall": 0.75,
+          "f1": 0.3333,
+          "support": 4,
+          "tp": 3,
+          "fp": 11,
+          "fn": 1
+        },
+        "other": {
+          "precision": 0.55,
+          "recall": 0.3438,
+          "f1": 0.4231,
+          "support": 32,
+          "tp": 11,
+          "fp": 9,
+          "fn": 21
+        }
+      }
+    },
+    "escalation_metrics": {
+      "accuracy": 0.615,
+      "precision": 0.7955,
+      "recall": 0.3398,
+      "f1": 0.4762,
+      "tp": 35,
+      "fp": 9,
+      "tn": 88,
+      "fn": 68,
+      "positive_support": 103,
+      "negative_support": 97,
+      "total_samples": 200,
+      "confusion_matrix": {
+        "actual_true_pred_true (TP)": 35,
+        "actual_false_pred_true (FP)": 9,
+        "actual_false_pred_false (TN)": 88,
+        "actual_true_pred_false (FN)": 68
+      }
+    },
+    "reply_metrics": {
+      "rouge_1_f1": 0.2885,
+      "rouge_2_f1": 0.119,
+      "rouge_l_f1": 0.2406,
+      "bleu_1": 0.2452,
+      "mean_hyp_char_length": 130.8,
+      "mean_hyp_token_length": 25.2,
+      "mean_ref_char_length": 140.3,
+      "mean_ref_token_length": 26.9,
+      "num_evaluated_replies": 200
+    }
+  }
+}

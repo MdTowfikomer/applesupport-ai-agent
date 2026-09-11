@@ -67,8 +67,6 @@ class IntentClassifier:
         self.api_key = os.getenv("GEMINI_API_KEY")
         self.client = None
         self.config = None
-        self.legacy_model = None
-
         if self.use_llm and self.api_key:
             try:
                 from google import genai
@@ -77,19 +75,19 @@ class IntentClassifier:
                 self.config = types.GenerateContentConfig(
                     system_instruction=INTENT_PROMPT_SYSTEM,
                     response_mime_type="application/json",
+                    thinking_config=types.ThinkingConfig(thinking_budget=0),
                 )
             except Exception:
-                try:
-                    import google.generativeai as legacy_genai
-                    legacy_genai.configure(api_key=self.api_key)
-                    self.legacy_model = legacy_genai.GenerativeModel(
-                        self.model_name,
-                        generation_config={"response_mime_type": "application/json"},
-                        system_instruction=INTENT_PROMPT_SYSTEM,
-                    )
-                except Exception:
-                    self.client = None
-                    self.legacy_model = None
+                self.client = None
+
+        self.groq_api_key = os.getenv("GROQ_API_KEY")
+        self.groq_client = None
+        if self.use_llm and self.groq_api_key:
+            try:
+                from groq import Groq
+                self.groq_client = Groq(api_key=self.groq_api_key)
+            except Exception:
+                self.groq_client = None
 
     def classify_rule_based(self, text: str) -> str:
         """Deterministic keyword pattern matching complying with Codebook rules."""
@@ -121,31 +119,53 @@ class IntentClassifier:
 
     def classify(self, text: str) -> str:
         """Classifies customer message into one of 10 canonical intents."""
-        if not self.use_llm or (not self.client and not self.legacy_model):
+        if not self.use_llm or (not self.client and not self.groq_client):
             return self.classify_rule_based(text)
 
-        try:
-            prompt = f'Customer Tweet: "{text}"\nClassify the intent JSON:'
-            if self.client:
+        prompt = f'Customer Tweet: "{text}"\nClassify the intent JSON:'
+        raw_text = ""
+
+        # 1. Primary: Gemini
+        if self.client:
+            try:
                 resp = self.client.models.generate_content(
                     model=self.model_name,
                     contents=prompt,
                     config=self.config,
                 )
                 raw_text = resp.text.strip()
-            elif self.legacy_model:
-                resp = self.legacy_model.generate_content(prompt)
-                raw_text = resp.text.strip()
-            else:
-                return self.classify_rule_based(text)
+            except Exception:
+                raw_text = ""
 
-            data = json.loads(raw_text)
+        # 2. Secondary: Groq (ultra-fast fallback on quota limit)
+        if not raw_text and self.groq_client:
+            try:
+                g_resp = self.groq_client.chat.completions.create(
+                    model="qwen/qwen3.8-27b",
+                    messages=[
+                        {"role": "system", "content": INTENT_PROMPT_SYSTEM},
+                        {"role": "user", "content": prompt}
+                    ],
+                    response_format={"type": "json_object"},
+                    temperature=0.0
+                )
+                raw_text = g_resp.choices[0].message.content.strip()
+            except Exception:
+                raw_text = ""
+
+        if not raw_text:
+            return self.classify_rule_based(text)
+
+        try:
+            # Strip markdown fence if present
+            clean_raw = re.sub(r"^```json\s*", "", raw_text)
+            clean_raw = re.sub(r"\s*```$", "", clean_raw).strip()
+            data = json.loads(clean_raw)
             pred_intent = data.get("intent", "").strip()
 
             if pred_intent in ALLOWED_INTENTS:
                 return pred_intent
-            else:
-                return self.classify_rule_based(text)
         except Exception:
-            # Safe degradation to rule-based classification
-            return self.classify_rule_based(text)
+            pass
+
+        return self.classify_rule_based(text)

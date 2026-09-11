@@ -51,18 +51,19 @@ class ResponseDrafter:
                 self.client = genai.Client(api_key=self.api_key)
                 self.config = types.GenerateContentConfig(
                     system_instruction=DRAFTER_SYSTEM_PROMPT,
+                    thinking_config=types.ThinkingConfig(thinking_budget=0),
                 )
             except Exception:
-                try:
-                    import google.generativeai as legacy_genai
-                    legacy_genai.configure(api_key=self.api_key)
-                    self.legacy_model = legacy_genai.GenerativeModel(
-                        self.model_name,
-                        system_instruction=DRAFTER_SYSTEM_PROMPT,
-                    )
-                except Exception:
-                    self.client = None
-                    self.legacy_model = None
+                self.client = None
+
+        self.groq_api_key = os.getenv("GROQ_API_KEY")
+        self.groq_client = None
+        if self.use_llm and self.groq_api_key:
+            try:
+                from groq import Groq
+                self.groq_client = Groq(api_key=self.groq_api_key)
+            except Exception:
+                self.groq_client = None
 
     def _format_offline_reply(
         self,
@@ -143,20 +144,35 @@ class ResponseDrafter:
                 f"Draft the Twitter reply for @AppleSupport:"
             )
 
+            draft_text = ""
+
+            # 1. Primary: Gemini
             if self.client:
-                response = self.client.models.generate_content(
-                    model=self.model_name,
-                    contents=prompt,
-                    config=self.config,
-                )
-                draft_text = response.text.strip()
-            elif self.legacy_model:
-                response = self.legacy_model.generate_content(prompt)
-                draft_text = response.text.strip()
-            else:
-                return self._format_offline_reply(
-                    customer_text, intent, escalate, escalate_reason, retrieved_context
-                )
+                try:
+                    response = self.client.models.generate_content(
+                        model=self.model_name,
+                        contents=prompt,
+                        config=self.config,
+                    )
+                    draft_text = response.text.strip()
+                except Exception:
+                    draft_text = ""
+
+            # 2. Secondary: Groq fallback
+            if not draft_text and self.groq_client:
+                try:
+                    g_resp = self.groq_client.chat.completions.create(
+                        model="qwen/qwen3.8-27b",
+                        messages=[
+                            {"role": "system", "content": DRAFTER_SYSTEM_PROMPT},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.2,
+                        max_tokens=100
+                    )
+                    draft_text = g_resp.choices[0].message.content.strip()
+                except Exception:
+                    draft_text = ""
 
             # Clean accidental markdown quotes
             draft_text = re.sub(r'^["\']|["\']$', "", draft_text).strip()

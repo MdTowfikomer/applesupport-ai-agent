@@ -28,7 +28,7 @@ def main():
 | **T5–T6: Baselines (Majority & Trivial)** | Completed | `reports/eval_results_trivial.jsonl` | Majority intent 16.0% acc; Always-escalate 51.5% acc, 67.99% F1 |
 | **T7: Simple Baseline Agent** | Completed | `reports/eval_results_simple.jsonl` | Keyword intent 55.0% acc; Rule escalation 59.5% acc, 72.0% prec |
 | **T8: AppleSupport AI Agent** | Completed | `src/pipeline/` (`reports/eval_results_agent.jsonl`) | 4-stage pipeline (Intent -> Retrieve -> Triage -> Draft) |
-| **T9: LLM-as-a-Judge Rubric & Calibration**| Completed | `reports/judge_agreement_summary.md` | `openai/gpt-oss-120b` via Groq: QWK kappa = 0.7897, 96% within-1 pt |
+| **T9: LLM-as-a-Judge Rubric & Calibration**| Completed | `reports/judge_agreement_summary.md` | `openai/gpt-oss-120b` via Groq: QWK kappa = 0.7640, 92.0% within-1 pt |
 | **T10: Systematic Error Analysis & Dump** | Completed | `reports/error_dump_agent.jsonl` | 142 error cases dumped across 5 canonical failure modes |
 | **T11: Failure Analysis & Headline Nuance** | Completed | `reports/failure_analysis_report.md` | 5 real Gold IDs analyzed; 4 misleading headline nuances |
 | **T12: Comprehensive Final Report & Decision Log** | Completed | `reports/final_submission_report.md`, `reports/decision_log.md` | 12 non-obvious decisions; canonical escalation schema aligned |
