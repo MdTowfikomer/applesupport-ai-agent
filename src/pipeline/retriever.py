@@ -19,17 +19,25 @@ def tokenize(text: str) -> List[str]:
 
 class HistoricalResolutionIndex:
     """
-    In-memory BM25/TF-IDF Retrieval Index for historical customer support resolutions.
-    Provides fast, deterministic top-k nearest-neighbor search over historical AppleSupport dialogues.
+    In-memory Hybrid Retrieval Index (BM25 + Dense Semantic RRF) for historical customer support resolutions.
+    Provides fast, top-k nearest-neighbor search over historical AppleSupport dialogues.
     """
 
     def __init__(
         self,
         subsample_path: str = "data/subsample/applesupport_threads_5k.jsonl",
         holdout_ids_path: str = "data/gold/index_holdout_ids.txt",
+        use_semantic: bool = True,
+        embedding_model_name: str = "all-MiniLM-L6-v2",
+        rrf_k: int = 60,
     ):
         self.subsample_path = Path(subsample_path)
         self.holdout_ids_path = Path(holdout_ids_path)
+        self.use_semantic = use_semantic
+        self.embedding_model_name = embedding_model_name
+        self.rrf_k = rrf_k
+        self.embed_model = None
+        self.corpus_embeddings = None
         self.holdout_ids: Set[str] = set()
         self.corpus: List[Dict[str, Any]] = []
 
@@ -42,6 +50,7 @@ class HistoricalResolutionIndex:
         self.doc_norms: List[float] = []
 
         self._load_and_index()
+        self._init_semantic_model()
 
     def _load_and_index(self):
         """Loads non-holdout corpus and constructs the inverted index."""
@@ -106,6 +115,23 @@ class HistoricalResolutionIndex:
 
             self.doc_norms.append(math.sqrt(norm_sq) if norm_sq > 0 else 1.0)
 
+    def _init_semantic_model(self):
+        """Initializes the semantic dense encoder and indexes the corpus if available."""
+        if not self.use_semantic or not self.corpus:
+            return
+
+        try:
+            from sentence_transformers import SentenceTransformer
+            import numpy as np
+            self.embed_model = SentenceTransformer(self.embedding_model_name)
+            corpus_texts = [d.get("customer_text", "") for d in self.corpus]
+            self.corpus_embeddings = self.embed_model.encode(
+                corpus_texts, convert_to_numpy=True, normalize_embeddings=True, show_progress_bar=False
+            )
+        except Exception:
+            self.embed_model = None
+            self.corpus_embeddings = None
+
     def retrieve(
         self, query: str, top_k: int = 3
     ) -> List[Dict[str, Any]]:
@@ -125,6 +151,7 @@ class HistoricalResolutionIndex:
                     "customer_text": first.get("customer_text"),
                     "brand_text": first.get("brand_text"),
                     "score": 0.0,
+                    "rrf_score": 0.0,
                 }
             ]
 
@@ -150,25 +177,64 @@ class HistoricalResolutionIndex:
                     "customer_text": first.get("customer_text"),
                     "brand_text": first.get("brand_text"),
                     "score": 0.0,
+                    "rrf_score": 0.0,
                 }
             ]
 
-        ranked = sorted(
+        # Precompute normalized BM25 scores for all matching candidates
+        bm25_similarities: Dict[int, float] = {
+            doc_idx: round(score / (self.doc_norms[doc_idx] * q_norm), 4)
+            for doc_idx, score in scores.items()
+        }
+
+        bm25_ranked = sorted(
             scores.items(),
-            key=lambda x: x[1] / (self.doc_norms[x[0]] * q_norm),
+            key=lambda x: bm25_similarities[x[0]],
             reverse=True,
         )
 
+        # Reciprocal Rank Fusion (RRF, k=60)
+        rrf_scores: Dict[int, float] = defaultdict(float)
+        for rank, (doc_idx, _) in enumerate(bm25_ranked):
+            rrf_scores[doc_idx] += 1.0 / (self.rrf_k + rank + 1)
+
+        # If dense semantic retriever is active, fuse dense ranks
+        semantic_active = self.embed_model is not None and self.corpus_embeddings is not None
+        if semantic_active:
+            try:
+                import numpy as np
+                q_emb = self.embed_model.encode(
+                    query, convert_to_numpy=True, normalize_embeddings=True
+                )
+                dense_sims = np.dot(self.corpus_embeddings, q_emb)
+                dense_ranked = np.argsort(-dense_sims)
+                for rank, doc_idx in enumerate(dense_ranked):
+                    rrf_scores[int(doc_idx)] += 1.0 / (self.rrf_k + rank + 1)
+            except Exception:
+                semantic_active = False
+
+        # Determine final candidate ordering
+        if semantic_active:
+            ranked_indices = [
+                (doc_idx, rrf_scores[doc_idx])
+                for doc_idx, _ in sorted(rrf_scores.items(), key=lambda x: x[1], reverse=True)
+            ]
+        else:
+            ranked_indices = [
+                (doc_idx, rrf_scores[doc_idx])
+                for doc_idx, _ in bm25_ranked
+            ]
+
         results = []
-        for doc_idx, score in ranked[:top_k]:
+        for doc_idx, rrf_val in ranked_indices[:top_k]:
             doc = self.corpus[doc_idx]
-            sim = score / (self.doc_norms[doc_idx] * q_norm)
             results.append(
                 {
                     "thread_id": doc.get("thread_id"),
                     "customer_text": doc.get("customer_text"),
                     "brand_text": doc.get("brand_text"),
-                    "score": round(sim, 4),
+                    "score": bm25_similarities.get(doc_idx, 0.0),
+                    "rrf_score": round(rrf_val, 6),
                 }
             )
 
